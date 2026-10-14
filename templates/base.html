@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gayn Kotor{% endblock %}</title>
+
+    <script>
+        (function () {
+            var saved = localStorage.getItem("theme");
+            var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            if (saved === "dark" || (!saved && prefersDark)) {
+                document.documentElement.classList.add("dark");
+            }
+        })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ["Inter", "Hind Siliguri", "sans-serif"],
+                    },
+                    colors: {
+                        canvas: { DEFAULT: "#F4FBF6", dark: "#0B1A12" },
+                        card: { DEFAULT: "#FFFFFF", dark: "#12261A" },
+                        nut: { DEFAULT: "#B45309", dark: "#FBBF24" },
+                        fern: { DEFAULT: "#4F7942", dark: "#3E6034", light: "#6B9A5B" },
+                        forest: { DEFAULT: "#228B22", dark: "#14532D", deep: "#0F3D1A" },
+                        grass: { DEFAULT: "#7CB342", hover: "#689F38", light: "#AED581" },
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+
+<body class="min-h-screen bg-canvas dark:bg-canvas-dark text-green-950 dark:text-green-50 font-sans antialiased">
+
+    {% include "partials/navbar.html" %}
+
+    {% if messages %}
+    <div class="mx-auto mt-4 max-w-3xl space-y-2 px-6">
+        {% for message in messages %}
+        <div class="rounded-xl border border-green-300 bg-green-100 px-4 py-3 text-green-900 dark:border-green-700 dark:bg-green-900/40 dark:text-green-100">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include "partials/footer.html" %}
+
+    <script>
+        function toggleTheme() {
+            var isDark = document.documentElement.classList.toggle("dark");
+            localStorage.setItem("theme", isDark ? "dark" : "light");
+        }
+    </script>
+</body>
+</html>

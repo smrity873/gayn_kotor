@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Gayn Kotor - Share what you know. Learn what you want.{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="relative overflow-hidden">
+    <div class="pointer-events-none absolute -top-24 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-green-300/40 blur-3xl dark:bg-green-700/20"></div>
+
+    <div class="relative mx-auto max-w-4xl px-6 pb-20 pt-20 text-center md:pt-28">
+        <span class="inline-flex items-center gap-2 rounded-full border border-green-200 bg-card px-4 py-1.5 text-sm font-medium text-green-700 dark:border-green-800 dark:bg-card-dark dark:text-green-300">
+            <span class="text-nut dark:text-nut-dark">🌰</span> Credit-based campus knowledge exchange
+        </span>
+
+        <h1 class="mt-6 text-4xl font-bold leading-tight tracking-tight text-green-900 dark:text-green-50 md:text-6xl">
+            Share what you know.<br>
+            <span class="bg-gradient-to-r from-green-600 to-emerald-400 bg-clip-text text-transparent">Learn what you want.</span>
+        </h1>
+
+        <p class="mx-auto mt-6 max-w-2xl text-lg text-green-900/70 dark:text-green-100/70">
+            Upload study notes, sell video courses and swap skills with students and teachers of your campus.
+            Earn nuts, grow your hollow.
+        </p>
+
+        <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <a href="{% url 'accounts:signup' %}" class="rounded-full bg-green-600 px-8 py-3.5 font-semibold text-white shadow-xl shadow-green-600/30 transition hover:-translate-y-0.5 hover:bg-green-700">
+                Get started free
+            </a>
+            <a href="#how" class="rounded-full border border-green-300 px-8 py-3.5 font-semibold text-green-700 transition hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/40">
+                How it works
+            </a>
+        </div>
+
+        <p class="mt-6 text-sm text-green-900/60 dark:text-green-100/50">
+            Sign up and get <span class="font-semibold text-nut dark:text-nut-dark">30 free nuts</span> to start.
+        </p>
+    </div>
+</section>
+
+<!-- THREE PILLARS -->
+<section class="mx-auto max-w-6xl px-6">
+    <div class="text-center">
+        <h2 class="text-3xl font-bold text-green-900 dark:text-green-50">Three ways to grow</h2>
+        <p class="mt-2 text-green-900/70 dark:text-green-100/70">Everything your campus knows, in one place.</p>
+    </div>
+
+    <div class="mt-12 grid gap-6 md:grid-cols-3">
+
+        <div class="group rounded-2xl border border-green-100 bg-card p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-2xl dark:bg-green-900/50">📚</div>
+            <h3 class="mt-5 text-xl font-bold text-green-900 dark:text-green-50">Note Sharing</h3>
+            <p class="mt-2 text-green-900/70 dark:text-green-100/70">Upload PDF notes, get them reviewed by your CR and teacher, and earn nuts every time someone benefits.</p>
+            <span class="mt-4 inline-block rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-nut dark:bg-amber-900/30 dark:text-nut-dark">🌰 Pay with nuts</span>
+        </div>
+
+        <div class="group rounded-2xl border border-green-100 bg-card p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-2xl dark:bg-green-900/50">🎬</div>
+            <h3 class="mt-5 text-xl font-bold text-green-900 dark:text-green-50">Video Courses</h3>
+            <p class="mt-2 text-green-900/70 dark:text-green-100/70">Learn from skilled seniors and lecturers, or publish your own course and earn real money.</p>
+            <span class="mt-4 inline-block rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-300">৳ Pay with money</span>
+        </div>
+
+        <div class="group rounded-2xl border border-green-100 bg-card p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-2xl dark:bg-green-900/50">🤝</div>
+            <h3 class="mt-5 text-xl font-bold text-green-900 dark:text-green-50">Skill Swap</h3>
+            <p class="mt-2 text-green-900/70 dark:text-green-100/70">You teach what you know, someone teaches you what you want. A fair one-to-one exchange.</p>
+            <span class="mt-4 inline-block rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-nut dark:bg-amber-900/30 dark:text-nut-dark">🌰 Pay with nuts</span>
+        </div>
+
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" class="mx-auto mt-28 max-w-6xl px-6">
+    <div class="text-center">
+        <h2 class="text-3xl font-bold text-green-900 dark:text-green-50">How it works</h2>
+    </div>
+
+    <div class="mt-12 grid gap-8 md:grid-cols-3">
+        <div class="text-center">
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white shadow-lg shadow-green-600/30">1</div>
+            <h3 class="mt-4 text-lg font-bold">Join your batch</h3>
+            <p class="mt-1 text-green-900/70 dark:text-green-100/70">Sign up with your department and ID. Get 30 nuts to start.</p>
+        </div>
+        <div class="text-center">
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white shadow-lg shadow-green-600/30">2</div>
+            <h3 class="mt-4 text-lg font-bold">Share and earn</h3>
+            <p class="mt-1 text-green-900/70 dark:text-green-100/70">Upload good notes or teach a skill. Every contribution fills your hollow.</p>
+        </div>
+        <div class="text-center">
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white shadow-lg shadow-green-600/30">3</div>
+            <h3 class="mt-4 text-lg font-bold">Learn anything</h3>
+            <p class="mt-1 text-green-900/70 dark:text-green-100/70">Spend nuts on notes and swaps, or buy a full video course.</p>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
