@@ -24,7 +24,7 @@
             {% endif %}
 
             {% for field in form %}
-            <div>
+            <div data-field="{{ field.name }}">
                 <label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-green-900 dark:text-green-100">
                     {{ field.label }}
                 </label>
@@ -50,4 +50,15 @@
         </p>
     </div>
 </section>
+<script>
+    (function () {
+        var role = document.getElementById("id_role");
+        var batchBox = document.querySelector('[data-field="batch"]');
+        function sync() {
+            batchBox.classList.toggle("hidden", role.value === "lecturer");
+        }
+        role.addEventListener("change", sync);
+        sync();
+    })();
+</script>
 {% endblock %}

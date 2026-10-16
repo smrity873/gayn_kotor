@@ -1,4 +1,7 @@
+from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+
+from campus.models import Batch, BatchMembership
 
 from .models import User
 
@@ -11,6 +14,19 @@ INPUT_CLASSES = (
 
 
 class SignUpForm(UserCreationForm):
+    batch = forms.ModelChoiceField(
+        queryset=Batch.objects.select_related("department"),
+        required=False,
+        empty_label="Select your batch",
+        label="Batch",
+        help_text="Students only. Your class teacher will approve your request.",
+    )
+
+    field_order = [
+        "first_name", "last_name", "username", "email",
+        "role", "id_number", "batch", "password1", "password2",
+    ]
+
     class Meta:
         model = User
         fields = ("first_name", "last_name", "username", "email", "role", "id_number")
@@ -23,13 +39,23 @@ class SignUpForm(UserCreationForm):
         for field in self.fields.values():
             field.widget.attrs["class"] = INPUT_CLASSES
 
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("role") == User.Role.STUDENT and not cleaned.get("batch"):
+            self.add_error("batch", "Please select your batch.")
+        return cleaned
+
     def save(self, commit=True):
         user = super().save(commit=False)
         if user.role == User.Role.LECTURER:
             user.is_active = False
         if commit:
             user.save()
+            batch = self.cleaned_data.get("batch")
+            if user.role == User.Role.STUDENT and batch:
+                BatchMembership.objects.create(user=user, batch=batch)
         return user
+
 
 class LoginForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
