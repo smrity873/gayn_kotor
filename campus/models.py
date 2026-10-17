@@ -69,3 +69,5 @@ class BatchMembership(models.Model):
 
     def __str__(self):
         return f"{self.user} in {self.batch} ({self.status})"
+    
+    is_cr = models.BooleanField(default=False)

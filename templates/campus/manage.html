@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Batch - Gayn Kotor{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-4xl px-6 py-12">
+    <h1 class="text-3xl font-bold text-green-900 dark:text-green-50">Manage your batch</h1>
+    <p class="mt-1 text-green-900/70 dark:text-green-100/70">Approve join requests and appoint CRs.</p>
+
+    {% for item in items %}
+    <div class="mt-8 rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+        <h2 class="text-xl font-bold text-green-800 dark:text-green-300">{{ item.batch }}</h2>
+
+        <!-- Pending requests -->
+        <h3 class="mt-6 text-sm font-semibold uppercase tracking-wide text-green-900/60 dark:text-green-100/60">
+            Pending requests ({{ item.pending|length }})
+        </h3>
+        {% for m in item.pending %}
+        <div class="mt-3 flex flex-col gap-3 rounded-xl bg-green-50 px-4 py-3 dark:bg-green-900/30 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="font-semibold">{{ m.user.get_full_name|default:m.user.username }}</p>
+                <p class="text-xs text-green-900/60 dark:text-green-100/60">ID: {{ m.user.id_number }} · {{ m.user.email }}</p>
+            </div>
+            <div class="flex gap-2">
+                <form method="post" action="{% url 'campus:membership_action' m.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <button class="rounded-full bg-green-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-green-700">Approve</button>
+                </form>
+                <form method="post" action="{% url 'campus:membership_action' m.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reject">
+                    <button class="rounded-full border border-red-300 px-4 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20">Reject</button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <p class="mt-3 text-sm text-green-900/60 dark:text-green-100/60">No pending requests.</p>
+        {% endfor %}
+
+        <!-- Members -->
+        <h3 class="mt-8 text-sm font-semibold uppercase tracking-wide text-green-900/60 dark:text-green-100/60">
+            Members ({{ item.members|length }})
+        </h3>
+        {% for m in item.members %}
+        <div class="mt-3 flex flex-col gap-3 rounded-xl border border-green-100 px-4 py-3 dark:border-green-900/60 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="font-semibold">
+                    {{ m.user.get_full_name|default:m.user.username }}
+                    {% if m.is_cr %}<span class="ml-2 rounded-full bg-green-600 px-2 py-0.5 text-xs font-bold text-white">CR</span>{% endif %}
+                </p>
+                <p class="text-xs text-green-900/60 dark:text-green-100/60">ID: {{ m.user.id_number }}</p>
+            </div>
+            <form method="post" action="{% url 'campus:membership_action' m.pk %}">
+                {% csrf_token %}
+                {% if m.is_cr %}
+                <input type="hidden" name="action" value="remove_cr">
+                <button class="rounded-full border border-green-600 px-4 py-1.5 text-sm font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/40">Remove CR</button>
+                {% else %}
+                <input type="hidden" name="action" value="make_cr">
+                <button class="rounded-full bg-green-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-green-700">Make CR</button>
+                {% endif %}
+            </form>
+        </div>
+        {% empty %}
+        <p class="mt-3 text-sm text-green-900/60 dark:text-green-100/60">No approved members yet.</p>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}
