@@ -1,5 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from credits.models import CreditLedger
+from credits.services import add_entry
 
 from campus.models import Batch, BatchMembership
 
@@ -51,6 +53,7 @@ class SignUpForm(UserCreationForm):
             user.is_active = False
         if commit:
             user.save()
+            add_entry(user, 30, CreditLedger.Reason.SIGNUP_BONUS, "Welcome bonus")
             batch = self.cleaned_data.get("batch")
             if user.role == User.Role.STUDENT and batch:
                 BatchMembership.objects.create(user=user, batch=batch)
