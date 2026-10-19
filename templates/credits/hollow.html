@@ -7,202 +7,156 @@
 {% block content %}
 
 <style>
-    #scene .sq-idle {
-        animation: sqIdle 1.2s ease-in-out infinite;
-        transform-box: fill-box;
-        transform-origin: center bottom;
+    #game-container {
+        position: relative;
+        width: 100%;
+        height: calc(100vh - 4.5rem);
+        min-height: 520px;
+        overflow: hidden;
+        background: #183a20;
+        isolation: isolate;
     }
 
-    #scene .sq-tail {
-        animation: sqTail .7s ease-in-out infinite alternate;
-        transform-box: fill-box;
-        transform-origin: 74% 62%;
+    #nut-hollow-video {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        background: #183a20;
     }
 
-    #scene .spark {
-        animation: sqTwinkle 1.7s ease-in-out infinite;
-        transform-box: fill-box;
-        transform-origin: center;
-        pointer-events: none;
+    #nut-hollow-video:focus {
+        outline: none;
     }
 
-    #scene .s2 { animation-delay: .6s; }
-    #scene .s3 { animation-delay: 1.1s; }
-
-    .dark #scene-img {
-        filter: brightness(.5) saturate(.85);
+    #video-error {
+        display: none;
+        position: absolute;
+        inset: 0;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        color: white;
+        text-align: center;
+        font: 16px/1.6 sans-serif;
+        background: #183a20;
     }
 
-    @keyframes sqIdle {
-        0%, 100% { transform: translateY(0) scale(1,1); }
-        25% { transform: translateY(-4px) scale(.99,1.02); }
-        50% { transform: translateY(0) scale(1.02,.98); }
-        75% { transform: translateY(-2px) scale(1,1); }
-    }
-
-    @keyframes sqTail {
-        from { transform: rotate(-5deg); }
-        to { transform: rotate(5deg); }
-    }
-
-    @keyframes sqTwinkle {
-        0%, 100% { opacity: .15; transform: scale(.5); }
-        50% { opacity: 1; transform: scale(1.15); }
-    }
-
-    #scene .gnut {
-        animation: gPop .7s cubic-bezier(.3,1.5,.5,1) both;
-    }
-
-    #scene .store {
-        animation: storeDrop 1.5s ease-in both;
-    }
-
-    @keyframes gPop {
-        0% { transform: translateY(-80px) scale(.3); opacity: 0; }
-        55% { opacity: 1; }
-        100% { transform: translateY(0) scale(1); opacity: 1; }
-    }
-
-    @keyframes storeDrop {
-        0% { transform: translateY(0); opacity: 0; }
-        18% { opacity: 1; }
-        78% { transform: translateY(92px); opacity: 1; }
-        100% { transform: translateY(100px); opacity: 0; }
-    }
-
-    #squirrel {
+    #replay-animation {
+        position: absolute;
+        z-index: 4;
+        right: 20px;
+        bottom: 20px;
+        padding: 10px 17px;
+        border: 1px solid rgba(255,255,255,.5);
+        border-radius: 999px;
+        background: rgba(20, 45, 24, .78);
+        color: white;
+        font: 600 14px/1.4 sans-serif;
         cursor: pointer;
-        pointer-events: bounding-box;
+        backdrop-filter: blur(8px);
     }
 
-    #squirrel.sq-clicked {
-        filter: drop-shadow(0 0 10px rgba(255, 218, 105, .85));
+    #replay-animation:hover {
+        background: rgba(30, 75, 36, .95);
     }
 
-    @media (prefers-reduced-motion: reduce) {
-        #scene .sq-idle,
-        #scene .sq-tail,
-        #scene .spark {
-            animation-duration: 3s;
+    @media (max-width: 1023px) {
+        #game-container {
+            height: auto;
+            min-height: 0;
+            aspect-ratio: 16 / 9;
+        }
+    }
+
+    @media (max-width: 600px) {
+        #replay-animation {
+            right: 10px;
+            bottom: 10px;
+            padding: 8px 12px;
+            font-size: 12px;
         }
     }
 </style>
 
 <section>
-    <div class="relative aspect-video w-full overflow-hidden lg:aspect-auto lg:h-[calc(100vh-4.5rem)] lg:min-h-[520px]">
+    <div id="game-container">
 
-        <svg id="scene"
-             viewBox="0 0 1671 941"
-             preserveAspectRatio="xMidYMax slice"
-             class="absolute inset-0 h-full w-full"
-             xmlns="http://www.w3.org/2000/svg"
-             role="img"
-             aria-label="Squirrel and the nut hollow">
+        <video
+            id="nut-hollow-video"
+            autoplay
+            muted
+            loop
+            playsinline
+            preload="auto"
+            disablepictureinpicture
+            aria-label="Nut Hollow animated squirrel adventure"
+        >
+            <source
+                src="{% static 'images/video.mp4' %}"
+                type="video/mp4"
+            >
+            Your browser does not support HTML5 video.
+        </video>
 
-            <defs>
-                <clipPath id="hollowClip">
-                    <ellipse cx="664" cy="586" rx="38" ry="62"/>
-                </clipPath>
+        <div id="video-error">
+            Unable to load the animation. Please check the video file path.
+        </div>
 
-                <radialGradient id="hollowShade" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stop-color="#1a0b03" stop-opacity="0"/>
-                    <stop offset="72%" stop-color="#1a0b03" stop-opacity="0"/>
-                    <stop offset="100%" stop-color="#1a0b03" stop-opacity=".65"/>
-                </radialGradient>
-
-                <g id="acorn">
-                    <path d="M-6 -2 Q0 15 6 -2 Z" fill="#D98A1F"/>
-                    <path d="M-4 0 Q-3 8 -1 11"
-                          stroke="#F2B455" stroke-width="1.4"
-                          fill="none" stroke-linecap="round"/>
-                    <ellipse cx="0" cy="-3" rx="7.2" ry="4.8" fill="#7A4A1E"/>
-                    <path d="M-5 -4 l2 2 M-1 -5 l2 2 M3 -4 l2 2 M-3 -1 l2 1.5 M1 -1 l2 1.5"
-                          stroke="#4d2c10" stroke-width=".8"/>
-                    <rect x="-.9" y="-9.5" width="1.8" height="3"
-                          rx=".9" fill="#4d2c10"/>
-                </g>
-            </defs>
-
-            <image id="scene-img"
-                   href="{% static 'images/hollow-scene.jpg' %}"
-                   x="0" y="0" width="1671" height="941"
-                   preserveAspectRatio="xMidYMid slice"/>
-
-            <g id="ground-nuts"></g>
-
-            <g clip-path="url(#hollowClip)">
-                <g id="store"></g>
-            </g>
-
-            <ellipse cx="664" cy="586" rx="42" ry="67"
-                     fill="url(#hollowShade)" pointer-events="none"/>
-
-            <!-- Animated squirrel -->
-            <g id="squirrel" transform="translate(852,615) scale(.8)">
-                <ellipse id="sq-shadow" cx="123" cy="331" rx="92" ry="11"
-                         fill="#0b2a14" opacity=".3"/>
-
-                <g id="sq-body" class="sq-idle"
-                   style="transform-origin:123px 331px">
-
-                    <image id="sq-image"
-                           href="{% static 'images/squirrel.png' %}"
-                           x="0" y="0" width="247" height="331"
-                           preserveAspectRatio="xMidYMax meet"/>
-
-                    <image id="sq-tail" class="sq-tail"
-                           href="{% static 'images/squirrel-tail.png' %}"
-                           x="0" y="0" width="247" height="331"
-                           preserveAspectRatio="xMidYMax meet"/>
-
-                    <path class="spark s1"
-                          d="M18 150 l2.6 6.4 6.4 2.6 -6.4 2.6 -2.6 6.4 -2.6 -6.4 -6.4 -2.6 6.4 -2.6z"
-                          fill="#fff6c9"/>
-
-                    <path class="spark s2"
-                          d="M104 128 l2.2 5.4 5.4 2.2 -5.4 2.2 -2.2 5.4 -2.2 -5.4 -5.4 -2.2 5.4 -2.2z"
-                          fill="#fff6c9"/>
-
-                    <path class="spark s3"
-                          d="M0 214 l2 4.8 4.8 2 -4.8 2 -2 4.8 -2 -4.8 -4.8 -2 4.8 -2z"
-                          fill="#fff6c9"/>
-                </g>
-            </g>
-        </svg>
-
-        <div class="pointer-events-none absolute left-6 top-5 sm:left-8 sm:top-6">
-            <h1 class="text-2xl font-bold text-white sm:text-4xl [text-shadow:0_2px_10px_rgba(0,0,0,.55)]">
+        <div class="pointer-events-none absolute left-6 top-5 z-10 sm:left-8 sm:top-6">
+            <h1 class="text-2xl font-bold text-white sm:text-4xl [text-shadow:0_2px_10px_rgba(0,0,0,.65)]">
                 My Nut Hollow
             </h1>
-            <p class="mt-1 text-sm text-white/90 sm:text-base [text-shadow:0_2px_8px_rgba(0,0,0,.55)]">
+
+            <p class="mt-1 text-sm text-white/90 sm:text-base [text-shadow:0_2px_8px_rgba(0,0,0,.7)]">
                 Every nut you earn is stored in your hollow.
             </p>
         </div>
 
-        <div class="absolute right-8 top-1/2 hidden w-80 -translate-y-1/2 rounded-3xl border border-white/40 bg-white/10 p-8 text-center text-white shadow-xl backdrop-blur-sm xl:block">
-            <p class="text-sm font-semibold uppercase tracking-wide text-white/90 [text-shadow:0_1px_6px_rgba(0,0,0,.6)]">
+        <div class="absolute right-8 top-1/2 z-10 hidden w-80 -translate-y-1/2 rounded-3xl border border-white/40 bg-white/10 p-8 text-center text-white shadow-xl backdrop-blur-sm xl:block">
+            <p class="text-sm font-semibold uppercase tracking-wide">
                 Your nuts
             </p>
-            <p class="mt-3 text-7xl font-bold text-amber-300 [text-shadow:0_2px_12px_rgba(0,0,0,.6)]">
-                🌰 <span data-balance="{{ balance }}">0</span>
+
+            <p class="mt-3 text-7xl font-bold text-amber-300">
+                🌰 <span data-balance="{{ balance|default:0 }}">0</span>
             </p>
-            <p class="mt-2 text-lg text-white/95 [text-shadow:0_1px_6px_rgba(0,0,0,.6)]">
+
+            <p class="mt-2 text-lg">
                 stored in your hollow
             </p>
-            <p class="mt-6 text-xs text-white/85 [text-shadow:0_1px_6px_rgba(0,0,0,.6)]">
+
+            <p class="mt-6 text-xs">
                 Every acorn on the grass stands for 5 nuts.
             </p>
         </div>
+
+        <button
+            id="replay-animation"
+            type="button"
+        >
+            Replay Animation
+        </button>
+
     </div>
 
-    <div class="relative mx-4 -mt-8 mb-2 rounded-3xl border border-white/30 bg-green-950/55 p-6 text-center text-white shadow-xl backdrop-blur-md sm:mx-auto sm:max-w-sm xl:hidden">
-        <p class="text-sm font-semibold uppercase tracking-wide text-white/90">Your nuts</p>
-        <p class="mt-3 text-7xl font-bold text-amber-300">
-            🌰 <span data-balance="{{ balance }}">0</span>
+    <div class="relative z-10 mx-4 -mt-8 mb-2 rounded-3xl border border-white/30 bg-green-950/75 p-6 text-center text-white shadow-xl backdrop-blur-md sm:mx-auto sm:max-w-sm xl:hidden">
+        <p class="text-sm font-semibold uppercase tracking-wide">
+            Your nuts
         </p>
-        <p class="mt-2 text-lg text-white/95">stored in your hollow</p>
-        <p class="mt-4 text-xs text-white/85">
+
+        <p class="mt-3 text-7xl font-bold text-amber-300">
+            🌰 <span data-balance="{{ balance|default:0 }}">0</span>
+        </p>
+
+        <p class="mt-2 text-lg">
+            stored in your hollow
+        </p>
+
+        <p class="mt-4 text-xs">
             Every acorn on the grass stands for 5 nuts.
         </p>
     </div>
@@ -214,30 +168,36 @@
     </h2>
 
     <div class="mt-4 divide-y divide-green-100 rounded-2xl border border-green-100 bg-card dark:divide-green-900/60 dark:border-green-900/60 dark:bg-card-dark">
+
         {% for e in entries %}
-        <div class="flex items-center justify-between px-5 py-4">
+        <div class="flex items-center justify-between gap-4 px-5 py-4">
             <div>
-                <p class="font-semibold">{{ e.get_reason_display }}</p>
+                <p class="font-semibold">
+                    {{ e.get_reason_display }}
+                </p>
+
                 <p class="text-xs text-green-900/60 dark:text-green-100/60">
                     {{ e.description }} · {{ e.created_at|date:"d M Y, h:i A" }}
                 </p>
             </div>
 
             {% if e.amount > 0 %}
-            <span class="font-bold text-green-600 dark:text-green-400">
+            <span class="shrink-0 font-bold text-green-600 dark:text-green-400">
                 +{{ e.amount }} 🌰
             </span>
             {% else %}
-            <span class="font-bold text-red-500 dark:text-red-400">
+            <span class="shrink-0 font-bold text-red-500 dark:text-red-400">
                 {{ e.amount }} 🌰
             </span>
             {% endif %}
         </div>
+
         {% empty %}
         <p class="px-5 py-6 text-green-900/60 dark:text-green-100/60">
             No activity yet.
         </p>
         {% endfor %}
+
     </div>
 </section>
 
@@ -245,253 +205,87 @@
 (function () {
     "use strict";
 
-    var els = document.querySelectorAll("[data-balance]");
-    var target = parseInt(els[0]?.dataset.balance || "0", 10) || 0;
-    var current = 0;
-    var step = Math.max(1, Math.ceil(target / 40));
+    const video = document.getElementById("nut-hollow-video");
+    const replayButton = document.getElementById("replay-animation");
+    const errorMessage = document.getElementById("video-error");
 
-    var timer = setInterval(function () {
-        current = Math.min(target, current + step);
-        els.forEach(function (el) {
-            el.textContent = current;
+    const PLAYBACK_SPEED = 0.5;
+
+    function applyPlaybackSpeed() {
+        video.playbackRate = PLAYBACK_SPEED;
+        video.defaultPlaybackRate = PLAYBACK_SPEED;
+    }
+
+    video.addEventListener("loadedmetadata", function () {
+        applyPlaybackSpeed();
+        video.play().catch(function (error) {
+            console.warn("Autoplay was blocked:", error);
         });
-        if (current >= target) clearInterval(timer);
-    }, 25);
+    });
 
-    var NS = "http://www.w3.org/2000/svg";
+    video.addEventListener("play", applyPlaybackSpeed);
+    video.addEventListener("ratechange", function () {
+        if (video.playbackRate !== PLAYBACK_SPEED) {
+            applyPlaybackSpeed();
+        }
+    });
 
-    // Ground acorns: one for every five nuts, maximum 24.
-    var count = Math.min(24, Math.ceil(target / 5));
+    video.addEventListener("error", function () {
+        errorMessage.style.display = "flex";
+        console.error("Video failed to load:", video.error);
+    });
 
-    var GROUND = [
-        [1120,880],[780,905],[1180,918],[700,872],
-        [1040,926],[620,902],[1260,890],[560,926],
-        [1330,920],[900,928],[480,908],[1400,896],
-        [1230,930],[740,930],[1090,915],[660,925],
-        [1460,925],[420,925],[1010,905],[820,920],
-        [1300,900],[520,890],[1160,935],[600,880]
-    ];
+    video.addEventListener("loadeddata", function () {
+        errorMessage.style.display = "none";
+    });
 
-    var ground = document.getElementById("ground-nuts");
-    var store = document.getElementById("store");
+    replayButton.addEventListener("click", function () {
+        video.currentTime = 0;
+        applyPlaybackSpeed();
 
-    for (var i = 0; i < count; i++) {
-        var pos = document.createElementNS(NS, "g");
-        pos.setAttribute(
-            "transform",
-            "translate(" + GROUND[i][0] + "," + GROUND[i][1] + ")"
-        );
+        video.play().catch(function (error) {
+            console.error("Video playback failed:", error);
+        });
+    });
 
-        var pop = document.createElementNS(NS, "g");
-        pop.setAttribute("class", "gnut");
-        pop.style.animationDelay = (0.4 + i * 0.12) + "s";
+    applyPlaybackSpeed();
 
-        var use = document.createElementNS(NS, "use");
-        use.setAttribute("href", "#acorn");
-        use.setAttribute(
-            "transform",
-            "rotate(" + ((i * 53) % 150 - 75) + ") scale(1.9)"
-        );
+    video.play().catch(function (error) {
+        console.warn("Waiting for user interaction to play video:", error);
+    });
 
-        pop.appendChild(use);
-        pos.appendChild(pop);
-        ground.appendChild(pos);
-    }
+    const balances = document.querySelectorAll("[data-balance]");
 
-    var drops = Math.min(6, count);
+    const targetBalance = Math.max(
+        0,
+        parseInt(balances[0]?.dataset.balance || "0", 10) || 0
+    );
 
-    for (var j = 0; j < drops; j++) {
-        var sp = document.createElementNS(NS, "g");
-        sp.setAttribute(
-            "transform",
-            "translate(" + (664 + (j % 3 - 1) * 12) + ",532)"
-        );
+    let displayedBalance = 0;
 
-        var sd = document.createElementNS(NS, "g");
-        sd.setAttribute("class", "store");
-        sd.style.animationDelay = (0.5 + j * 0.55) + "s";
+    if (targetBalance === 0) {
+        balances.forEach(function (element) {
+            element.textContent = "0";
+        });
+    } else {
+        const counterTimer = setInterval(function () {
+            displayedBalance = Math.min(
+                targetBalance,
+                displayedBalance + Math.max(
+                    1,
+                    Math.ceil(targetBalance / 40)
+                )
+            );
 
-        var su = document.createElementNS(NS, "use");
-        su.setAttribute("href", "#acorn");
-        su.setAttribute("transform", "scale(1.7)");
-
-        sd.appendChild(su);
-        sp.appendChild(sd);
-        store.appendChild(sp);
-    }
-
-    // Squirrel movement.
-    var scene = document.getElementById("scene");
-    var squirrel = document.getElementById("squirrel");
-    var body = document.getElementById("sq-body");
-    var squirrelImage = document.getElementById("sq-image");
-    var tail = document.getElementById("sq-tail");
-
-    if (!scene || !squirrel || !body || !ground) return;
-
-    var x = 852;
-    var direction = 1;
-    var speed = 1.1;
-    var minX = 320;
-    var maxX = 1160;
-    var action = "run";
-    var actionUntil = 0;
-    var lastTime = 0;
-    var frame = 0;
-    var pauseTimer = null;
-    var collected = new Set();
-    var acornPositions = [];
-
-    // Read actual positions of the nuts created above.
-    ground.querySelectorAll(":scope > g").forEach(function (nut) {
-        var match = (nut.getAttribute("transform") || "").match(
-            /translate\(([-\d.]+),([-\d.]+)\)/
-        );
-
-        if (match) {
-            acornPositions.push({
-                element: nut,
-                x: Number(match[1]),
-                y: Number(match[2])
+            balances.forEach(function (element) {
+                element.textContent = displayedBalance;
             });
-        }
-    });
 
-    function setAction(name, duration) {
-        action = name;
-        actionUntil = performance.now() + duration;
-        body.style.animation = "none";
-        body.style.transform = "";
-    }
-
-    function updateTransform() {
-        squirrel.setAttribute(
-            "transform",
-            "translate(" + x + ",615) scale(" +
-            (direction < 0 ? "-0.8,0.8" : "0.8,0.8") + ")"
-        );
-    }
-
-    function collectNearestNut() {
-        var nearest = null;
-        var best = Infinity;
-
-        acornPositions.forEach(function (nut) {
-            if (collected.has(nut.element)) return;
-
-            var distance = Math.abs(nut.x - x);
-
-            if (distance < best) {
-                best = distance;
-                nearest = nut;
+            if (displayedBalance >= targetBalance) {
+                clearInterval(counterTimer);
             }
-        });
-
-        if (nearest && best < 110) {
-            collected.add(nearest.element);
-            nearest.element.style.opacity = "0";
-            nearest.element.style.pointerEvents = "none";
-
-            // Eating pose is simulated with a gentle crouch.
-            setAction("eat", 1800);
-
-            setTimeout(function () {
-                nearest.element.style.visibility = "hidden";
-            }, 500);
-        } else {
-            setAction("sit", 1200);
-        }
+        }, 25);
     }
-
-    function animateSquirrel(time) {
-        if (!document.documentElement.contains(squirrel)) return;
-
-        var dt = lastTime
-            ? Math.min((time - lastTime) / 16.67, 2)
-            : 1;
-
-        lastTime = time;
-        frame += dt;
-
-        if (time >= actionUntil && action !== "run") {
-            action = "run";
-        }
-
-        if (action === "run") {
-            x += direction * speed * dt;
-
-            if (x >= maxX) {
-                x = maxX;
-                direction = -1;
-            }
-
-            if (x <= minX) {
-                x = minX;
-                direction = 1;
-            }
-
-            updateTransform();
-
-            body.style.transform =
-                "translateY(" + (Math.sin(frame * .22) * 3) + "px)";
-
-            if (tail) {
-                tail.style.transform =
-                    "rotate(" + (Math.sin(frame * .16) * 4) + "deg)";
-            }
-        } else if (action === "jump") {
-            updateTransform();
-
-            body.style.transform =
-                "translateY(" + (-Math.abs(Math.sin(frame * .35) * 30)) + "px)";
-        } else {
-            updateTransform();
-
-            body.style.transform =
-                "translateY(" + (-Math.abs(Math.sin(frame * .12) * 5)) + "px)";
-        }
-
-        requestAnimationFrame(animateSquirrel);
-    }
-
-    function randomPause() {
-        if (action === "run" && Math.random() < 0.6) {
-            collectNearestNut();
-        }
-
-        pauseTimer = setTimeout(
-            randomPause,
-            3000 + Math.random() * 3500
-        );
-    }
-
-    squirrel.addEventListener("click", function () {
-        if (action !== "run") return;
-
-        squirrel.classList.add("sq-clicked");
-        setAction("jump", 850);
-        direction *= -1;
-
-        setTimeout(function () {
-            squirrel.classList.remove("sq-clicked");
-        }, 900);
-    });
-
-    squirrel.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            squirrel.dispatchEvent(new MouseEvent("click", {
-                bubbles: true
-            }));
-        }
-    });
-
-    squirrel.setAttribute("tabindex", "0");
-    squirrel.setAttribute("role", "button");
-    squirrel.setAttribute("aria-label", "Click the squirrel to make it jump");
-
-    requestAnimationFrame(animateSquirrel);
-    pauseTimer = setTimeout(randomPause, 2500);
 })();
 </script>
 
