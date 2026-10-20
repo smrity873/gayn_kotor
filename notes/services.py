@@ -55,10 +55,24 @@ def visible_notes(user):
     return published.filter(allowed)
 
 
+def reviewer_batch_ids(user):
+    """Batches where this user can review notes (class teacher or CR)."""
+    ids = set(user.class_teacher_of.values_list("id", flat=True))
+    ids |= set(
+        BatchMembership.objects.filter(
+            user=user, is_cr=True, status=BatchMembership.Status.APPROVED
+        ).values_list("batch_id", flat=True)
+    )
+    return ids
+
+
 def can_view_note(user, note):
     if note.owner_id == user.id or user.is_superuser:
         return True
+    if note.batch_id and note.batch_id in reviewer_batch_ids(user):
+        return True
     return visible_notes(user).filter(pk=note.pk).exists()
+
 
 
 def can_upload(user):
@@ -126,3 +140,25 @@ def make_preview(note):
         return True
     except Exception:
         return False
+    
+    
+
+def reviewable_notes(user):
+    pending = Note.objects.filter(status=Note.Status.PENDING).select_related(
+        "owner", "department", "batch"
+    )
+    if user.is_superuser:
+        return pending
+    return pending.filter(batch_id__in=reviewer_batch_ids(user)).exclude(owner=user)
+
+
+def can_review(user, note):
+    return reviewable_notes(user).filter(pk=note.pk).exists()
+
+
+@transaction.atomic
+def reject_note(note, reviewer, reason):
+    note.status = Note.Status.REJECTED
+    note.reviewed_by = reviewer
+    note.rejection_reason = reason.strip()
+    note.save()

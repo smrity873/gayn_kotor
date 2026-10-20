@@ -1,19 +1,26 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+from django.views.decorators.http import require_POST
 
 from accounts.models import User
-from campus.models import BatchMembership, Department
+from campus.models import Department
 
 from .forms import NoteForm
 from .models import Note
 from .services import (
     approve_note,
+    can_review,
     can_upload,
     can_view_note,
     make_preview,
+    reject_note,
+    reviewable_notes,
+    reviewer_batch_ids,
     search_notes,
     visible_notes,
 )
@@ -107,3 +114,53 @@ def upload(request):
         form = NoteForm(user=user)
 
     return render(request, "notes/upload.html", {"form": form})
+
+
+@login_required
+def review_list(request):
+    if not (request.user.is_superuser or reviewer_batch_ids(request.user)):
+        raise PermissionDenied
+    notes = reviewable_notes(request.user).order_by("created_at")
+    return render(request, "notes/review_list.html", {"notes": notes})
+
+
+@login_required
+def review_detail(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    if not can_review(request.user, note):
+        raise Http404
+    return render(request, "notes/review_detail.html", {"note": note})
+
+
+@login_required
+@require_POST
+def review_action(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    if not can_review(request.user, note):
+        raise Http404
+
+    owner_name = note.owner.get_full_name() or note.owner.username
+    action = request.POST.get("action")
+
+    if action == "approve":
+        approve_note(note, reviewer=request.user)
+        messages.success(request, f"Approved. {owner_name} earned 10 nuts.")
+    elif action == "reject":
+        reason = request.POST.get("reason", "").strip()
+        if not reason:
+            messages.error(request, "Please write a reason for rejecting the note.")
+            return redirect("notes:review_detail", pk=pk)
+        reject_note(note, request.user, reason)
+        messages.info(request, f"Rejected. {owner_name} can see your reason.")
+
+    return redirect("notes:review_list")
+
+
+@login_required
+@xframe_options_sameorigin
+def note_file(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    user = request.user
+    if not (note.owner_id == user.id or user.is_superuser or can_review(user, note)):
+        raise Http404
+    return FileResponse(note.file.open("rb"), content_type="application/pdf")

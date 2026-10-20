@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Review: {{ note.title }} - Gayn Kotor{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+
+    <a href="{% url 'notes:review_list' %}" class="inline-flex items-center gap-1 text-sm font-semibold text-green-700 hover:underline dark:text-green-300">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15 19-7-7 7-7"/></svg>
+        Back to review list
+    </a>
+
+    <div class="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+
+        <!-- PDF -->
+        <div class="overflow-hidden rounded-2xl border border-green-100 bg-card shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex items-center justify-between border-b border-green-100 px-4 py-3 dark:border-green-900/60">
+                <span class="text-sm font-semibold text-green-900 dark:text-green-50">Note PDF</span>
+                <a href="{% url 'notes:file' note.pk %}" target="_blank" class="inline-flex items-center gap-1 text-sm font-semibold text-green-700 hover:underline dark:text-green-300">
+                    Open in new tab
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6m0-6L10 14M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5"/></svg>
+                </a>
+            </div>
+            <iframe src="{% url 'notes:file' note.pk %}" title="Note PDF" class="h-[75vh] w-full bg-white"></iframe>
+        </div>
+
+        <!-- Details and actions -->
+        <div class="space-y-5">
+
+            <div class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800 dark:bg-green-900/50 dark:text-green-200">{{ note.course_code }}</span>
+                <h1 class="mt-3 text-2xl font-bold leading-snug text-green-900 dark:text-green-50">{{ note.title }}</h1>
+                {% if note.description %}
+                <p class="mt-2 text-sm text-green-900/70 dark:text-green-100/70">{{ note.description }}</p>
+                {% endif %}
+
+                <dl class="mt-5 space-y-3 text-sm">
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-green-900/60 dark:text-green-100/60">Uploaded by</dt>
+                        <dd class="font-semibold">{{ note.owner.get_full_name|default:note.owner.username }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-green-900/60 dark:text-green-100/60">Batch</dt>
+                        <dd class="font-semibold">{{ note.batch|default:"-" }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-green-900/60 dark:text-green-100/60">Department</dt>
+                        <dd class="font-semibold">{{ note.department.code }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-green-900/60 dark:text-green-100/60">Semester</dt>
+                        <dd class="font-semibold">{{ note.semester }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-green-900/60 dark:text-green-100/60">Who can see it</dt>
+                        <dd class="font-semibold">{{ note.get_visibility_display }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-green-900/60 dark:text-green-100/60">Submitted</dt>
+                        <dd class="font-semibold">{{ note.created_at|date:"d M Y, h:i A" }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <!-- Approve -->
+            <form method="post" action="{% url 'notes:review_action' note.pk %}" class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve">
+                <h2 class="font-bold text-green-900 dark:text-green-50">Looks good?</h2>
+                <p class="mt-1 text-sm text-green-900/70 dark:text-green-100/70">The note will be published and the uploader earns 10 nuts.</p>
+                <button type="submit" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-green-600 py-3 font-semibold text-white shadow-lg shadow-green-600/30 transition hover:bg-green-700">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+                    Approve note
+                </button>
+            </form>
+
+            <!-- Reject -->
+            <form method="post" action="{% url 'notes:review_action' note.pk %}" class="rounded-2xl border border-red-100 bg-card p-6 shadow-sm dark:border-red-900/50 dark:bg-card-dark">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <h2 class="font-bold text-green-900 dark:text-green-50">Needs changes?</h2>
+                <p class="mt-1 text-sm text-green-900/70 dark:text-green-100/70">Tell the uploader what is wrong. A reason is required.</p>
+                <textarea name="reason" rows="3" required placeholder="e.g. Pages are blurry, or this is the wrong course."
+                          class="mt-3 w-full rounded-xl border border-green-200 bg-white px-4 py-2.5 text-sm text-green-950 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-400/30 dark:border-green-800 dark:bg-canvas-dark dark:text-green-50"></textarea>
+                <button type="submit" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-400 py-3 font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6 6 18"/></svg>
+                    Reject note
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
