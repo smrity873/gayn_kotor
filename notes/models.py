@@ -4,6 +4,10 @@ from django.core.validators import FileExtensionValidator, MaxValueValidator, Mi
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from django.contrib.auth import get_user_model
+User = get_user_model()
+from django.core.validators import MinValueValidator, MaxValueValidator
+
 MAX_FILE_MB = 50
 
 
@@ -81,3 +85,27 @@ class Note(models.Model):
 
     def __str__(self):
         return f"{self.course_code} - {self.title}"
+    
+class NoteDownload(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='downloaded_notes')
+    note = models.ForeignKey('Note', on_delete=models.CASCADE, related_name='downloads')
+    downloaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'note')
+
+    def __str__(self):
+        return f"{self.user.username} downloaded {self.note.title}"
+    
+class NoteRating(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_ratings')
+    note = models.ForeignKey('Note', on_delete=models.CASCADE, related_name='ratings')
+    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    review = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'note')
+
+    def __str__(self):
+        return f"{self.user.username} rated {self.note.title} {self.rating}/5"

@@ -9,9 +9,10 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import User
 from campus.models import Department
+from credits.services import add_entry, get_balance
 
 from .forms import NoteForm
-from .models import Note
+from .models import Note, NoteDownload, NoteRating
 from .services import (
     approve_note,
     can_review,
@@ -161,6 +162,126 @@ def review_action(request, pk):
 def note_file(request, pk):
     note = get_object_or_404(Note, pk=pk)
     user = request.user
-    if not (note.owner_id == user.id or user.is_superuser or can_review(user, note)):
+    
+    # Check if user has already downloaded/unlocked the note
+    has_downloaded = NoteDownload.objects.filter(user=user, note=note).exists()
+    
+    # Allow access if owner, superuser, reviewer, OR has downloaded
+    if not (note.owner_id == user.id or user.is_superuser or can_review(user, note) or has_downloaded):
         raise Http404
+        
     return FileResponse(note.file.open("rb"), content_type="application/pdf")
+
+
+@login_required
+def note_detail(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    is_owner = (request.user == note.owner)
+    
+    has_downloaded = False
+    if not is_owner:
+        has_downloaded = NoteDownload.objects.filter(user=request.user, note=note).exists()
+    
+    return render(request, 'notes/note_detail.html', {
+        'note': note,
+        'is_owner': is_owner,
+        'has_downloaded': has_downloaded,
+    })
+
+
+@login_required
+@require_POST
+def note_download(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    
+    # If user is the owner, allow free access
+    if request.user == note.owner:
+        return redirect('notes:file', pk=note.pk)
+        
+    # Check if already unlocked
+    has_downloaded = NoteDownload.objects.filter(user=request.user, note=note).exists()
+    if has_downloaded:
+        return redirect('notes:file', pk=note.pk)
+        
+    # 1. Check if the user has enough balance
+    if get_balance(request.user) < 5:
+        messages.error(request, "You do not have enough nuts! You need at least 5 nuts to unlock this note.")
+        return redirect('notes:detail', pk=note.pk)
+        
+    # 2. Deduct 5 nuts using the credit service
+    try:
+        add_entry(
+            user=request.user, 
+            amount=-5, 
+            reason="note_download", 
+            description=f"Unlocked note: {note.title}"
+        )
+    except ValueError:
+        messages.error(request, "Error processing your nuts. Please try again.")
+        return redirect('notes:detail', pk=note.pk)
+    
+    # 3. Save download record
+    NoteDownload.objects.create(user=request.user, note=note)
+    messages.success(request, "Note unlocked successfully! 5 nuts have been deducted.")
+    
+    return redirect('notes:file', pk=note.pk)
+
+@login_required
+@require_POST
+def note_rate(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    
+    # Owner cannot rate their own note
+    if request.user == note.owner:
+        messages.error(request, "You cannot rate your own note.")
+        return redirect('notes:detail', pk=note.pk)
+        
+    # User must unlock/download the note before rating
+    has_downloaded = NoteDownload.objects.filter(user=request.user, note=note).exists()
+    if not has_downloaded:
+        messages.error(request, "You must unlock the note before rating it.")
+        return redirect('notes:detail', pk=note.pk)
+        
+    # Check if already rated
+    if NoteRating.objects.filter(user=request.user, note=note).exists():
+        messages.error(request, "You have already rated this note.")
+        return redirect('notes:detail', pk=note.pk)
+        
+    # Get rating value from form
+    try:
+        rating_val = int(request.POST.get('rating', 0))
+        if rating_val < 1 or rating_val > 5:
+            raise ValueError
+    except ValueError:
+        messages.error(request, "Invalid rating. Please select between 1 and 5.")
+        return redirect('notes:detail', pk=note.pk)
+        
+    review_text = request.POST.get('review', '').strip()
+    
+    # Save the rating
+    NoteRating.objects.create(
+        user=request.user,
+        note=note,
+        rating=rating_val,
+        review=review_text
+    )
+    
+    # Reward credits (1 nut to rater, 5 nuts to uploader)
+    try:
+        add_entry(
+            user=request.user, 
+            amount=1, 
+            reason="rating_given", 
+            description=f"Rated note: {note.title}"
+        )
+        add_entry(
+            user=note.owner, 
+            amount=5, 
+            reason="rating_received", 
+            description=f"Received rating on note: {note.title}"
+        )
+    except Exception:
+        pass # Ignore if there's any ledger error, but rating is already saved
+        
+    messages.success(request, "Thank you for rating! You earned 1 nut and the uploader received 5 nuts.")
+    return redirect('notes:detail', pk=note.pk)

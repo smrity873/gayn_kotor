@@ -46,10 +46,15 @@
 
     {% include "partials/navbar.html" %}
 
-    {% if messages %}
+   {% if messages %}
     <div class="mx-auto mt-4 max-w-3xl space-y-2 px-6">
         {% for message in messages %}
-        <div class="rounded-xl border border-green-300 bg-green-100 px-4 py-3 text-green-900 dark:border-green-700 dark:bg-green-900/40 dark:text-green-100">
+        <div class="rounded-xl border px-4 py-3 
+            {% if message.tags == 'error' %}
+                border-red-300 bg-red-100 text-red-900 dark:border-red-700 dark:bg-red-900/40 dark:text-red-100
+            {% else %}
+                border-green-300 bg-green-100 text-green-900 dark:border-green-700 dark:bg-green-900/40 dark:text-green-100
+            {% endif %}">
             {{ message }}
         </div>
         {% endfor %}
