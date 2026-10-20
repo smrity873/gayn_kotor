@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'core',
     'campus',
     'credits',
+    'notes',
 ]
 
 MIDDLEWARE = [
@@ -156,3 +157,6 @@ AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "core:home"
+
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"

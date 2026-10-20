@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Notes - Gayn Kotor{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-6 py-10">
+
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-green-900 dark:text-green-50">Notes</h1>
+            <p class="mt-1 text-green-900/70 dark:text-green-100/70">Study notes shared by your campus.</p>
+        </div>
+        {% if can_upload %}
+        <a href="{% url 'notes:upload' %}" class="inline-flex items-center justify-center gap-2 rounded-full bg-green-600 px-6 py-3 font-semibold text-white shadow-lg shadow-green-600/30 transition hover:bg-green-700">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            Upload a note
+        </a>
+        {% endif %}
+    </div>
+
+    {% if not can_upload and upload_hint %}
+    <div class="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
+        <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>
+        <span>{{ upload_hint }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Tabs -->
+    <div class="mt-8 flex gap-1 border-b border-green-100 dark:border-green-900/60">
+        <a href="?tab=all" class="-mb-px border-b-2 px-5 py-2.5 font-semibold transition {% if tab == 'all' %}border-green-600 text-green-700 dark:border-green-400 dark:text-green-300{% else %}border-transparent text-green-900/60 hover:text-green-700 dark:text-green-100/60{% endif %}">All notes</a>
+        <a href="?tab=mine" class="-mb-px border-b-2 px-5 py-2.5 font-semibold transition {% if tab == 'mine' %}border-green-600 text-green-700 dark:border-green-400 dark:text-green-300{% else %}border-transparent text-green-900/60 hover:text-green-700 dark:text-green-100/60{% endif %}">My notes</a>
+    </div>
+
+    <!-- Search and filters -->
+    <form method="get" class="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <div class="relative">
+            <svg class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-green-900/40 dark:text-green-100/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5"/></svg>
+            <input type="search" name="q" value="{{ q }}" placeholder="Search by name or course code (e.g. CSE101)..."
+                   class="w-full rounded-full border border-green-200 bg-white py-2.5 pl-12 pr-5 text-green-950 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/30 dark:border-green-800 dark:bg-card-dark dark:text-green-50">
+        </div>
+        <select name="department" class="rounded-full border border-green-200 bg-white px-5 py-2.5 text-green-950 outline-none focus:border-green-500 dark:border-green-800 dark:bg-card-dark dark:text-green-50">
+            <option value="">All departments</option>
+            {% for d in departments %}
+            <option value="{{ d.id }}" {% if department == d.id|stringformat:"s" %}selected{% endif %}>{{ d.code }}</option>
+            {% endfor %}
+        </select>
+        <select name="semester" class="rounded-full border border-green-200 bg-white px-5 py-2.5 text-green-950 outline-none focus:border-green-500 dark:border-green-800 dark:bg-card-dark dark:text-green-50">
+            <option value="">All semesters</option>
+            {% for s in semesters %}
+            <option value="{{ s }}" {% if semester == s|stringformat:"s" %}selected{% endif %}>Semester {{ s }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="rounded-full bg-green-600 px-8 py-2.5 font-semibold text-white transition hover:bg-green-700">Search</button>
+    </form>
+
+    <div class="mt-5 flex items-center justify-between text-sm text-green-900/60 dark:text-green-100/60">
+        <span>{{ page.paginator.count }} found</span>
+        {% if q or department or semester %}
+        <a href="?tab={{ tab }}" class="font-semibold text-green-700 hover:underline dark:text-green-300">Clear filters</a>
+        {% endif %}
+    </div>
+
+    <!-- Note cards -->
+    <div class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {% for note in page %}
+        <article class="group flex flex-col overflow-hidden rounded-2xl border border-green-100 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-green-900/60 dark:bg-card-dark">
+
+            <div class="relative aspect-[4/3] overflow-hidden bg-green-50 dark:bg-green-900/30">
+                <div class="absolute inset-0 flex items-center justify-center text-green-600/40 dark:text-green-300/30">
+                    <svg class="h-16 w-16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+                </div>
+                <img src="{% url 'notes:preview' note.pk %}" alt="" loading="lazy" onerror="this.style.display='none'"
+                     class="absolute inset-0 h-full w-full object-cover object-top transition duration-500 group-hover:scale-105">
+
+                <span class="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-green-800 shadow">{{ note.course_code }}</span>
+
+                {% if tab == 'mine' or note.status == 'unverified' %}
+                <span class="absolute right-3 top-3 rounded-full px-3 py-1 text-xs font-semibold shadow {% if note.status == 'approved' %}bg-green-600 text-white{% elif note.status == 'pending' %}bg-amber-400 text-amber-950{% elif note.status == 'unverified' %}bg-amber-400 text-amber-950{% elif note.status == 'rejected' %}bg-red-600 text-white{% else %}bg-gray-500 text-white{% endif %}">{{ note.get_status_display }}</span>
+                {% endif %}
+            </div>
+
+            <div class="flex flex-1 flex-col p-5">
+                <h2 class="line-clamp-2 text-lg font-bold leading-snug text-green-900 dark:text-green-50">{{ note.title }}</h2>
+                {% if note.description %}
+                <p class="mt-1 line-clamp-2 text-sm text-green-900/70 dark:text-green-100/70">{{ note.description }}</p>
+                {% endif %}
+
+                <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-green-900/60 dark:text-green-100/60">
+                    <span class="inline-flex items-center gap-1">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V7l8-4 8 4v14M9 21v-6h6v6"/></svg>
+                        {{ note.department.code }}
+                    </span>
+                    <span class="inline-flex items-center gap-1">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5"/></svg>
+                        Semester {{ note.semester }}
+                    </span>
+                </div>
+
+                {% if tab == 'mine' and note.status == 'rejected' and note.rejection_reason %}
+                <p class="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-300">Reason: {{ note.rejection_reason }}</p>
+                {% endif %}
+                {% if tab == 'mine' and note.status == 'pending' %}
+                <p class="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">Waiting for your CR to review it.</p>
+                {% endif %}
+
+                <div class="mt-auto flex items-center justify-between border-t border-green-100 pt-4 text-xs text-green-900/60 dark:border-green-900/60 dark:text-green-100/60">
+                    <span class="flex min-w-0 items-center gap-2">
+                        <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-[11px] font-bold uppercase text-white">{{ note.owner.first_name|default:note.owner.username|first }}</span>
+                        <span class="truncate">{{ note.owner.get_full_name|default:note.owner.username }}</span>
+                    </span>
+                    <span class="flex shrink-0 items-center gap-3">
+                        <span class="inline-flex items-center gap-1">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0 4-4m-4 4-4-4M4 20h16"/></svg>
+                            {{ note.download_count }}
+                        </span>
+                        <span>{{ note.created_at|date:"d M Y" }}</span>
+                    </span>
+                </div>
+            </div>
+        </article>
+        {% empty %}
+        <div class="col-span-full rounded-2xl border border-dashed border-green-200 px-6 py-16 text-center dark:border-green-800">
+            <svg class="mx-auto h-12 w-12 text-green-600/40 dark:text-green-300/30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5"/></svg>
+            <p class="mt-3 font-semibold text-green-900 dark:text-green-50">{% if tab == 'mine' %}You have not uploaded any note yet.{% else %}No notes found.{% endif %}</p>
+            <p class="mt-1 text-sm text-green-900/60 dark:text-green-100/60">{% if tab == 'mine' %}Share your first note and earn 10 nuts.{% else %}Try a shorter word or a different course code.{% endif %}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+       <!-- Pages -->
+    {% if page.has_other_pages %}
+    <div class="mt-10 flex items-center justify-center gap-4 text-sm">
+        {% if page.has_previous %}
+        <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.previous_page_number }}" class="inline-flex items-center gap-1 rounded-full border border-green-600 py-2 pl-3 pr-5 font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15 19-7-7 7-7"/></svg>
+            Previous
+        </a>
+        {% endif %}
+        <span class="text-green-900/70 dark:text-green-100/70">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+        <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.next_page_number }}" class="inline-flex items-center gap-1 rounded-full border border-green-600 py-2 pl-5 pr-3 font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">
+            Next
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/></svg>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
