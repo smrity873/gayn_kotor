@@ -1,142 +1,232 @@
 {% extends "base.html" %}
+
 {% block title %}{{ note.title }} - Gayn Kotor{% endblock %}
 
 {% block content %}
+<style>
+    .star-rating { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: .25rem; --star-off: rgba(22,101,52,.25); }
+    .dark .star-rating { --star-off: rgba(220,252,231,.3); }
+    .star-rating input { position: absolute; opacity: 0; pointer-events: none; }
+    .star-rating label { cursor: pointer; color: var(--star-off); transition: color .15s, transform .15s; }
+    .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: #f59e0b; }
+    .star-rating label:hover { transform: scale(1.15); }
+</style>
+
 <section class="mx-auto max-w-6xl px-6 py-10">
-    <!-- Back Button -->
-    <a href="{% url 'notes:list' %}" class="mb-6 inline-flex items-center gap-1 text-sm font-semibold text-forest hover:text-forest-deep dark:text-grass-light dark:hover:text-white transition-colors">
+
+    <a href="{% url 'notes:list' %}" class="inline-flex items-center gap-1 text-sm font-semibold text-green-700 hover:underline dark:text-green-300">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15 19-7-7 7-7"/></svg>
         Back to all notes
     </a>
 
-    <!-- Main Note Details & Preview -->
-    <div class="grid gap-8 lg:grid-cols-3 lg:items-stretch">
-        
-        <!-- Left Side: Details & Actions -->
-        <div class="lg:col-span-2 flex flex-col">
-            <div class="flex h-full flex-col rounded-2xl border border-fern/20 bg-card p-8 shadow-sm dark:border-fern-dark dark:bg-card-dark">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <span class="rounded-full bg-grass-light/30 px-3 py-1 text-xs font-bold text-forest-deep dark:bg-grass-dark/30 dark:text-grass-light">{{ note.course_code }}</span>
-                        <h1 class="mt-4 text-3xl font-bold">{{ note.title }}</h1>
-                        <p class="mt-2 text-sm opacity-75">Semester {{ note.semester }} • {{ note.department.code }}</p>
-                    </div>
+    <div class="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+
+        <!-- Preview -->
+        <div class="lg:order-2 lg:sticky lg:top-24 lg:self-start">
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-100 via-emerald-50 to-lime-100 p-6 dark:from-green-900/60 dark:via-green-950 dark:to-emerald-950">
+                <div class="absolute inset-0 flex items-center justify-center text-green-600/30 dark:text-green-300/20">
+                    <svg class="h-24 w-24" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5M9 13h6M9 17h6"/></svg>
                 </div>
-                
-                {% if note.description %}
-                <div class="mt-6 rounded-xl bg-canvas p-4 dark:bg-canvas-dark">
-                    <p>{{ note.description }}</p>
-                </div>
-                {% endif %}
-                
-                <div class="mt-6 border-t border-fern/20 pt-6 dark:border-fern-dark">
-                    <p class="text-sm opacity-80">Uploaded by: <span class="font-semibold">{{ note.owner.get_full_name|default:note.owner.username }}</span></p>
-                </div>
-                
-                <div class="mt-auto pt-8">
-                    {% if is_owner or has_downloaded %}
-                        <a href="{% url 'notes:file' note.pk %}" target="_blank" class="inline-flex items-center justify-center gap-2 rounded-full bg-forest px-8 py-3 font-semibold text-white shadow-md transition hover:bg-forest-deep dark:hover:bg-grass-hover">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-                            Download Note
-                        </a>
-                    {% else %}
-                        <form method="post" action="{% url 'notes:download' note.pk %}" class="rounded-xl border border-nut/20 bg-canvas p-5 dark:border-nut/30 dark:bg-canvas-dark">
-                            {% csrf_token %}
-                            <h3 class="font-bold text-nut dark:text-nut-dark">Unlock Note</h3>
-                            <p class="mt-1 text-sm opacity-80">Downloading this note costs <strong>5 nuts</strong> from your balance.</p>
-                            <button type="submit" class="mt-4 inline-flex items-center gap-2 rounded-full bg-nut px-8 py-3 font-semibold text-white shadow-md transition hover:opacity-90">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
-                                Pay 5 nuts & Download
-                            </button>
-                        </form>
-                    {% endif %}
-                </div>
+                <img src="{% url 'notes:preview' note.pk %}" alt="{{ note.title }} preview" loading="lazy" onerror="this.style.display='none'"
+                     class="relative mx-auto max-h-[70vh] w-full rounded-xl bg-white object-contain shadow-md">
             </div>
         </div>
 
-        <!-- Right Side: PDF Preview Pic -->
-        <div class="lg:col-span-1 h-[400px] lg:h-auto">
-            <div class="flex h-full w-full items-center justify-center rounded-2xl border border-fern/20 bg-card p-4 shadow-sm dark:border-fern-dark dark:bg-card-dark">
-                <!-- Object-contain keeps the image fully visible without clipping or weird double borders -->
-                <img src="{% url 'notes:preview' note.pk %}" alt="{{ note.title }} Preview" class="h-full w-full rounded-xl object-contain" loading="lazy" onerror="this.style.display='none'">
+        <!-- Details and actions -->
+        <div class="space-y-5 lg:order-1">
+
+            <div class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark sm:p-8">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800 dark:bg-green-900/50 dark:text-green-200">{{ note.course_code }}</span>
+                    {% if note.status == 'unverified' %}
+                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Unverified</span>
+                    {% endif %}
+                </div>
+
+                <h1 class="mt-3 text-3xl font-bold leading-tight text-green-900 dark:text-green-50">{{ note.title }}</h1>
+
+                <div class="mt-3 flex items-center gap-2">
+                    <span class="flex">
+                        {% for i in "12345" %}
+                        <svg class="h-5 w-5 {% if avg_rating >= i|add:'0' %}text-amber-400{% else %}text-green-900/20 dark:text-green-100/20{% endif %}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.93c.3-.92 1.6-.92 1.9 0l1.07 3.29a1 1 0 0 0 .95.69h3.46c.97 0 1.37 1.24.59 1.81l-2.8 2.03a1 1 0 0 0-.37 1.12l1.07 3.29c.3.92-.76 1.69-1.54 1.12l-2.8-2.03a1 1 0 0 0-1.17 0l-2.8 2.03c-.78.57-1.84-.2-1.54-1.12l1.07-3.29a1 1 0 0 0-.37-1.12L2.98 8.72c-.78-.57-.38-1.81.59-1.81h3.46a1 1 0 0 0 .95-.69l1.07-3.29Z"/></svg>
+                        {% endfor %}
+                    </span>
+                    {% if rating_count %}
+                    <span class="text-sm font-semibold text-green-900 dark:text-green-50">{{ avg_rating|floatformat:1 }}</span>
+                    <span class="text-sm text-green-900/60 dark:text-green-100/60">({{ rating_count }} rating{{ rating_count|pluralize }})</span>
+                    {% else %}
+                    <span class="text-sm text-green-900/60 dark:text-green-100/60">No ratings yet</span>
+                    {% endif %}
+                </div>
+
+                {% if note.description %}
+                <p class="mt-5 rounded-xl bg-green-50 p-4 text-sm leading-relaxed text-green-900/80 dark:bg-green-900/30 dark:text-green-100/80">{{ note.description }}</p>
+                {% endif %}
+
+                <dl class="mt-6 grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <dt class="flex items-center gap-1.5 text-green-900/60 dark:text-green-100/60">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 21a8 8 0 0 1 16 0"/></svg>
+                            Uploaded by
+                        </dt>
+                        <dd class="mt-0.5 font-semibold">{{ note.owner.get_full_name|default:note.owner.username }}</dd>
+                    </div>
+                    <div>
+                        <dt class="flex items-center gap-1.5 text-green-900/60 dark:text-green-100/60">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V7l8-4 8 4v14M9 21v-6h6v6"/></svg>
+                            Department
+                        </dt>
+                        <dd class="mt-0.5 font-semibold">{{ note.department.code }}</dd>
+                    </div>
+                    <div>
+                        <dt class="flex items-center gap-1.5 text-green-900/60 dark:text-green-100/60">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5"/></svg>
+                            Semester
+                        </dt>
+                        <dd class="mt-0.5 font-semibold">{{ note.semester }}</dd>
+                    </div>
+                    <div>
+                        <dt class="flex items-center gap-1.5 text-green-900/60 dark:text-green-100/60">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M3 10h18M8 3v4m8-4v4"/></svg>
+                            Uploaded
+                        </dt>
+                        <dd class="mt-0.5 font-semibold">{{ note.created_at|date:"d M Y" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="flex items-center gap-1.5 text-green-900/60 dark:text-green-100/60">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0 4-4m-4 4-4-4M4 20h16"/></svg>
+                            Unlocked
+                        </dt>
+                        <dd class="mt-0.5 font-semibold">{{ note.download_count }} time{{ note.download_count|pluralize }}</dd>
+                    </div>
+                    <div>
+                        <dt class="flex items-center gap-1.5 text-green-900/60 dark:text-green-100/60">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            Who can see it
+                        </dt>
+                        <dd class="mt-0.5 font-semibold">{{ note.get_visibility_display }}</dd>
+                    </div>
+                </dl>
             </div>
+
+            <!-- Status for the owner -->
+            {% if is_owner and note.status != 'approved' and note.status != 'unverified' %}
+            <div class="rounded-2xl border px-5 py-4 text-sm {% if note.status == 'rejected' %}border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-200{% else %}border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100{% endif %}">
+                <p class="font-semibold">{{ note.get_status_display }}</p>
+                {% if note.status == 'rejected' and note.rejection_reason %}
+                <p class="mt-1">Reason: {{ note.rejection_reason }}</p>
+                {% elif note.status == 'pending' %}
+                <p class="mt-1">Your CR will review this note soon. When it is approved you earn 10 nuts.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Read / unlock -->
+            {% if is_owner or has_downloaded %}
+            <div class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <h2 class="font-bold text-green-900 dark:text-green-50">{% if is_owner %}Your note{% else %}Unlocked{% endif %}</h2>
+                <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <a href="{% url 'notes:file' note.pk %}" target="_blank" class="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-green-600 py-3 font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Read PDF
+                    </a>
+                    <a href="{% url 'notes:file' note.pk %}" download="{{ note.course_code }} - {{ note.title }}.pdf" class="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-green-600 py-3 font-semibold text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0 4-4m-4 4-4-4M4 20h16"/></svg>
+                        Download
+                    </a>
+                </div>
+            </div>
+            {% elif note.status == 'approved' or note.status == 'unverified' %}
+            <div class="rounded-2xl border border-amber-200 bg-card p-6 shadow-sm dark:border-amber-800/60 dark:bg-card-dark">
+                <div class="flex items-start gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path stroke-linecap="round" d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                    </span>
+                    <div>
+                        <h2 class="font-bold text-green-900 dark:text-green-50">Unlock this note</h2>
+                        <p class="mt-1 text-sm text-green-900/70 dark:text-green-100/70">Read and download it forever for <strong class="text-amber-700 dark:text-amber-300">{{ download_cost|default:5 }} nuts</strong>. You pay only once.</p>
+                    </div>
+                </div>
+
+                {% if can_afford is False %}
+                <div class="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+                    You do not have enough nuts yet. Share your own note and earn 10 nuts.
+                    <a href="{% url 'credits:hollow' %}" class="font-semibold underline">Open my hollow</a>
+                </div>
+                <button type="button" disabled class="mt-4 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-gray-300 py-3 font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-400">Not enough nuts</button>
+                {% else %}
+                <form method="post" action="{% url 'notes:download' note.pk %}" class="mt-4">
+                    {% csrf_token %}
+                    <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber-500 py-3 font-semibold text-white shadow-md shadow-amber-500/30 transition hover:bg-amber-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path stroke-linecap="round" d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>
+                        Unlock for {{ download_cost|default:5 }} nuts
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Rating Submission Form -->
-    {% if has_downloaded %}
-    <div class="mt-8 rounded-2xl border border-fern/20 bg-card p-6 shadow-sm dark:border-fern-dark dark:bg-card-dark">
-        <h3 class="text-xl font-bold">Rate this Note</h3>
-        <p class="mt-1 text-sm opacity-80">Rate this note to help others. You will earn <strong class="text-nut dark:text-nut-dark">1 nut</strong> and the uploader will receive <strong class="text-nut dark:text-nut-dark">5 nuts</strong>.</p>
-        
-        <form method="post" action="{% url 'notes:rate' note.pk %}" class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start">
-            {% csrf_token %}
-            <div class="w-full sm:w-48 shrink-0">
-                <select name="rating" required class="w-full rounded-xl border border-fern/30 bg-canvas px-4 py-2.5 text-sm outline-none focus:border-forest focus:ring-2 focus:ring-forest/20 dark:border-fern-dark dark:bg-canvas-dark">
-                    <option value="" disabled selected>Select Rating...</option>
-                    <option value="5">5 - Excellent! 🔥</option>
-                    <option value="4">4 - Very Good</option>
-                    <option value="3">3 - Average</option>
-                    <option value="2">2 - Poor</option>
-                    <option value="1">1 - Terrible</option>
-                </select>
-            </div>
+    <!-- Rate -->
+    {% if has_downloaded and not my_rating %}
+    <div class="mt-8 rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+        <h2 class="text-xl font-bold text-green-900 dark:text-green-50">Rate this note</h2>
+        <p class="mt-1 text-sm text-green-900/70 dark:text-green-100/70">Help others choose well. You earn <strong class="text-amber-700 dark:text-amber-300">1 nut</strong> and the uploader earns <strong class="text-amber-700 dark:text-amber-300">5 nuts</strong>.</p>
 
-            <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-start">
-                <input type="text" name="review" placeholder="Write a short review (optional)..." class="w-full rounded-xl border border-fern/30 bg-canvas px-4 py-2.5 text-sm outline-none focus:border-forest focus:ring-2 focus:ring-forest/20 dark:border-fern-dark dark:bg-canvas-dark">
-                
-                <button type="submit" class="shrink-0 rounded-xl bg-grass px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-grass-hover">
-                    Submit
-                </button>
+        <form method="post" action="{% url 'notes:rate' note.pk %}" class="mt-5 space-y-4">
+            {% csrf_token %}
+            <div class="star-rating text-4xl">
+                {% for i in "54321" %}
+                <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" required>
+                <label for="star{{ i }}" title="{{ i }} star{{ i|pluralize }}">
+                    <svg class="h-9 w-9" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.93c.3-.92 1.6-.92 1.9 0l1.07 3.29a1 1 0 0 0 .95.69h3.46c.97 0 1.37 1.24.59 1.81l-2.8 2.03a1 1 0 0 0-.37 1.12l1.07 3.29c.3.92-.76 1.69-1.54 1.12l-2.8-2.03a1 1 0 0 0-1.17 0l-2.8 2.03c-.78.57-1.84-.2-1.54-1.12l1.07-3.29a1 1 0 0 0-.37-1.12L2.98 8.72c-.78-.57-.38-1.81.59-1.81h3.46a1 1 0 0 0 .95-.69l1.07-3.29Z"/></svg>
+                </label>
+                {% endfor %}
             </div>
+            <textarea name="review" rows="2" maxlength="500" placeholder="Write a short review (optional)..."
+                      class="w-full rounded-xl border border-green-200 bg-white px-4 py-2.5 text-sm text-green-950 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/30 dark:border-green-800 dark:bg-canvas-dark dark:text-green-50"></textarea>
+            <button type="submit" class="rounded-full bg-green-600 px-8 py-2.5 font-semibold text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">Submit rating</button>
         </form>
+    </div>
+    {% elif my_rating %}
+    <div class="mt-8 flex items-center gap-3 rounded-2xl border border-green-100 bg-green-50 px-5 py-4 text-sm text-green-900 dark:border-green-900/60 dark:bg-green-900/20 dark:text-green-100">
+        <svg class="h-5 w-5 shrink-0 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+        You rated this note {{ my_rating.rating }} out of 5. Thank you!
     </div>
     {% endif %}
 
-    <!-- All Ratings List Section -->
-    <div class="mt-12 border-t border-fern/20 pt-10 dark:border-fern-dark">
-        <h3 class="text-2xl font-bold">Ratings & Reviews</h3>
-        
-        {% if note.ratings.exists %}
-            <div class="mt-6 flex flex-col gap-4">
-                {% for r in note.ratings.all %}
-                <div class="rounded-xl border border-fern/20 bg-card p-5 shadow-sm dark:border-fern-dark dark:bg-card-dark">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <!-- Profile Image -->
-                            <div class="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-canvas dark:bg-canvas-dark border border-fern/20 dark:border-fern-dark">
-                                {% if r.user.picture %}
-                                    <img src="{{ r.user.picture.url }}" alt="Profile" class="h-full w-full object-cover">
-                                {% elif r.user.profile.image %}
-                                    <img src="{{ r.user.profile.image.url }}" alt="Profile" class="h-full w-full object-cover">
-                                {% else %}
-                                    <svg class="h-full w-full p-2 text-fern dark:text-fern-light" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                                {% endif %}
-                            </div>
-                            
-                            <div>
-                                <h4 class="font-bold text-sm">{{ r.user.get_full_name|default:r.user.username }}</h4>
-                                <p class="text-xs opacity-60">{{ r.created_at|date:"d M Y" }}</p>
-                            </div>
-                        </div>
+    <!-- Reviews -->
+    <div class="mt-10 border-t border-green-100 pt-8 dark:border-green-900/60">
+        <h2 class="text-2xl font-bold text-green-900 dark:text-green-50">Ratings and reviews</h2>
 
-                        <!-- Rating Badge -->
-                        <div class="flex items-center gap-1 rounded bg-nut/10 px-2 py-1 text-sm font-bold text-nut dark:text-nut-dark">
-                            {{ r.rating }} 
-                            <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        {% with items=reviews|default:note.ratings.all %}
+        <div class="mt-5 space-y-4">
+            {% for r in items %}
+            <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-600 font-bold uppercase text-white">{{ r.user.first_name|default:r.user.username|first }}</span>
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-bold">{{ r.user.get_full_name|default:r.user.username }}</p>
+                            <p class="text-xs text-green-900/60 dark:text-green-100/60">{{ r.created_at|date:"d M Y" }}</p>
                         </div>
                     </div>
-
-                    {% if r.review %}
-                    <p class="mt-3 pl-13 text-sm opacity-90">"{{ r.review }}"</p>
-                    {% endif %}
+                    <span class="flex shrink-0">
+                        {% for i in "12345" %}
+                        <svg class="h-4 w-4 {% if r.rating >= i|add:'0' %}text-amber-400{% else %}text-green-900/20 dark:text-green-100/20{% endif %}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.93c.3-.92 1.6-.92 1.9 0l1.07 3.29a1 1 0 0 0 .95.69h3.46c.97 0 1.37 1.24.59 1.81l-2.8 2.03a1 1 0 0 0-.37 1.12l1.07 3.29c.3.92-.76 1.69-1.54 1.12l-2.8-2.03a1 1 0 0 0-1.17 0l-2.8 2.03c-.78.57-1.84-.2-1.54-1.12l1.07-3.29a1 1 0 0 0-.37-1.12L2.98 8.72c-.78-.57-.38-1.81.59-1.81h3.46a1 1 0 0 0 .95-.69l1.07-3.29Z"/></svg>
+                        {% endfor %}
+                    </span>
                 </div>
-                {% endfor %}
+                {% if r.review %}
+                <p class="mt-3 text-sm leading-relaxed text-green-900/80 dark:text-green-100/80">{{ r.review }}</p>
+                {% endif %}
             </div>
-        {% else %}
-            <p class="mt-4 py-4 text-center text-sm font-semibold opacity-60">No reviews yet. Be the first to share your thoughts!</p>
-        {% endif %}
+            {% empty %}
+            <p class="rounded-2xl border border-dashed border-green-200 px-6 py-10 text-center text-sm text-green-900/60 dark:border-green-800 dark:text-green-100/60">No reviews yet. Unlock the note and be the first to rate it.</p>
+            {% endfor %}
+        </div>
+        {% endwith %}
     </div>
-
 </section>
 {% endblock %}
