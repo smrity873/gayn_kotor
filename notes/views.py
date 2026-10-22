@@ -28,6 +28,7 @@ from .services import (
     reviewer_batch_ids,
     search_notes,
     visible_notes,
+    publish_overdue_notes,
 )
 
 DOWNLOAD_COST = 5
@@ -39,6 +40,7 @@ OWNER_DAILY_CAP = 10
 
 @login_required
 def note_list(request):
+    publish_overdue_notes()
     tab = "mine" if request.GET.get("tab") == "mine" else "all"
 
     if tab == "mine":
@@ -131,6 +133,7 @@ def upload(request):
 def review_list(request):
     if not (request.user.is_superuser or reviewer_batch_ids(request.user)):
         raise PermissionDenied
+    publish_overdue_notes()
     notes = reviewable_notes(request.user).order_by("created_at")
     return render(request, "notes/review_list.html", {"notes": notes})
 
@@ -154,8 +157,11 @@ def review_action(request, pk):
     action = request.POST.get("action")
 
     if action == "approve":
-        approve_note(note, reviewer=request.user)
-        messages.success(request, f"Approved. {owner_name} earned 10 nuts.")
+        paid = approve_note(note, reviewer=request.user)
+        if paid:
+            messages.success(request, f"Approved. {owner_name} earned 10 nuts.")
+        else:
+            messages.success(request, "Approved.")
     elif action == "reject":
         reason = request.POST.get("reason", "").strip()
         if not reason:
@@ -165,7 +171,6 @@ def review_action(request, pk):
         messages.info(request, f"Rejected. {owner_name} can see your reason.")
 
     return redirect("notes:review_list")
-
 
 @login_required
 @xframe_options_sameorigin

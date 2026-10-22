@@ -12,29 +12,44 @@ from credits.models import CreditLedger
 from credits.services import add_entry
 
 from .models import Note
+from datetime import timedelta
+
+from django.conf import settings
 
 UPLOAD_REWARD = 10
 
 
 @transaction.atomic
 def approve_note(note, reviewer=None):
-    first_time = note.published_at is None
-
+    """Publishes the note as verified. Pays the upload reward only once.
+    Returns True when nuts were paid."""
     note.status = Note.Status.APPROVED
     note.reviewed_by = reviewer
     note.rejection_reason = ""
-    if first_time:
+    if note.published_at is None:
         note.published_at = timezone.now()
+
+    pay = not note.reward_paid
+    if pay:
+        note.reward_paid = True
     note.save()
 
-    if first_time:
+    if pay:
         add_entry(
             note.owner,
             UPLOAD_REWARD,
             CreditLedger.Reason.NOTE_UPLOAD,
             f"Note approved: {note.title}",
         )
+    return pay
 
+
+def publish_overdue_notes():
+    """Notes nobody reviewed in time go live as 'unverified' (no reward yet)."""
+    cutoff = timezone.now() - timedelta(days=settings.NOTE_AUTOPUBLISH_DAYS)
+    return Note.objects.filter(
+        status=Note.Status.PENDING, created_at__lte=cutoff
+    ).update(status=Note.Status.UNVERIFIED, published_at=timezone.now())
 
 def visible_notes(user):
     published = Note.objects.filter(

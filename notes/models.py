@@ -7,6 +7,9 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 User = get_user_model()
 from django.core.validators import MinValueValidator, MaxValueValidator
+from datetime import timedelta
+
+from django.utils import timezone
 
 MAX_FILE_MB = 50
 
@@ -79,12 +82,26 @@ class Note(models.Model):
     download_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     published_at = models.DateTimeField(null=True, blank=True)
+    reward_paid = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.course_code} - {self.title}"
+    
+    @property
+    def is_overdue(self):
+        if self.status != self.Status.PENDING:
+            return False
+        return timezone.now() - self.created_at >= timedelta(days=settings.NOTE_ESCALATE_DAYS)
+
+    @property
+    def days_left_to_autopublish(self):
+        if self.status != self.Status.PENDING:
+            return None
+        left = self.created_at + timedelta(days=settings.NOTE_AUTOPUBLISH_DAYS) - timezone.now()
+        return max(0, left.days)
     
 class NoteDownload(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='downloaded_notes')
