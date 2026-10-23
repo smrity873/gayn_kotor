@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'campus',
     'credits',
     'notes',
+    'notifications',
 ]
 
 MIDDLEWARE = [
