@@ -25,4 +25,5 @@ urlpatterns = [
     path('notes/', include('notes.urls')),    
     path('notifications/', include('notifications.urls')),
     path('', include('core.urls')),
+    path('courses/', include('courses.urls')),
 ]

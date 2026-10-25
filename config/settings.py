@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'credits',
     'notes',
     'notifications',
+    'courses',
 ]
 
 MIDDLEWARE = [
@@ -164,3 +165,4 @@ MEDIA_URL = "/media/"
 
 NOTE_ESCALATE_DAYS = 3
 NOTE_AUTOPUBLISH_DAYS = 7
+

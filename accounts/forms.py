@@ -4,6 +4,9 @@ from credits.models import CreditLedger
 from credits.services import add_entry
 
 from campus.models import Batch, BatchMembership
+from django.urls import reverse
+
+from notifications.services import notify
 
 from .models import User
 
@@ -57,6 +60,12 @@ class SignUpForm(UserCreationForm):
             batch = self.cleaned_data.get("batch")
             if user.role == User.Role.STUDENT and batch:
                 BatchMembership.objects.create(user=user, batch=batch)
+                if batch.class_teacher_id:
+                    notify(
+                        batch.class_teacher,
+                        f"New join request: {user.get_full_name() or user.username} wants to join {batch}.",
+                        reverse("campus:manage"),
+                    )
         return user
 
 

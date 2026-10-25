@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Explore Courses{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-7xl px-6 py-10">
+    <h1 class="mb-8 text-3xl font-bold text-forest dark:text-grass-light">Available Courses</h1>
+    
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {% for course in courses %}
+        <div class="overflow-hidden rounded-2xl border border-fern/20 bg-card shadow-sm transition hover:shadow-md dark:border-fern-dark dark:bg-card-dark">
+            {% if course.thumbnail %}
+            <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" class="h-48 w-full object-cover">
+            {% else %}
+            <div class="flex h-48 w-full items-center justify-center bg-gray-200 text-gray-500 dark:bg-gray-800">No Cover</div>
+            {% endif %}
+            
+            <div class="p-5">
+                <h2 class="mb-2 text-xl font-semibold text-gray-900 dark:text-white">{{ course.title }}</h2>
+                <p class="mb-4 text-sm text-gray-600 dark:text-gray-300">{{ course.description|truncatewords:15 }}</p>
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-forest dark:text-grass-light">BDT {{ course.price }}</span>
+                    <a href="#" class="rounded-lg bg-forest px-4 py-2 text-sm font-bold text-white transition hover:bg-forest-deep">View Course</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="col-span-full text-center text-gray-500">No courses available right now.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

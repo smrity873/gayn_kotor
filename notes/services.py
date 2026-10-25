@@ -1,22 +1,50 @@
 import re
+from datetime import timedelta
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Q, Value
 from django.db.models.functions import Replace, Upper
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
 from campus.models import BatchMembership
 from credits.models import CreditLedger
 from credits.services import add_entry
+from notifications.services import notify, notify_many
 
 from .models import Note
-from datetime import timedelta
-
-from django.conf import settings
 
 UPLOAD_REWARD = 10
+
+
+def batch_reviewers(batch):
+    """Class teacher and approved CRs of a batch."""
+    if batch is None:
+        return []
+    users = {}
+    if batch.class_teacher_id:
+        users[batch.class_teacher_id] = batch.class_teacher
+    cr_users = User.objects.filter(
+        membership__batch=batch,
+        membership__is_cr=True,
+        membership__status=BatchMembership.Status.APPROVED,
+    )
+    for u in cr_users:
+        users[u.id] = u
+    return list(users.values())
+
+
+def notify_reviewers(note):
+    owner_name = note.owner.get_full_name() or note.owner.username
+    reviewers = [u for u in batch_reviewers(note.batch) if u.id != note.owner_id]
+    notify_many(
+        reviewers,
+        f'New note to review: "{note.title}" by {owner_name}',
+        reverse("notes:review_detail", args=[note.pk]),
+    )
 
 
 @transaction.atomic
@@ -41,15 +69,48 @@ def approve_note(note, reviewer=None):
             CreditLedger.Reason.NOTE_UPLOAD,
             f"Note approved: {note.title}",
         )
+
+    if reviewer is not None:
+        text = f'Your note "{note.title}" was approved.'
+        if pay:
+            text += f" You earned {UPLOAD_REWARD} nuts."
+        notify(note.owner, text, reverse("notes:detail", args=[note.pk]))
     return pay
+
+
+@transaction.atomic
+def reject_note(note, reviewer, reason):
+    note.status = Note.Status.REJECTED
+    note.reviewed_by = reviewer
+    note.rejection_reason = reason.strip()
+    note.save()
+    notify(
+        note.owner,
+        f'Your note "{note.title}" was rejected. Reason: {note.rejection_reason}',
+        reverse("notes:list") + "?tab=mine",
+    )
 
 
 def publish_overdue_notes():
     """Notes nobody reviewed in time go live as 'unverified' (no reward yet)."""
     cutoff = timezone.now() - timedelta(days=settings.NOTE_AUTOPUBLISH_DAYS)
-    return Note.objects.filter(
-        status=Note.Status.PENDING, created_at__lte=cutoff
-    ).update(status=Note.Status.UNVERIFIED, published_at=timezone.now())
+    notes = list(
+        Note.objects.filter(status=Note.Status.PENDING, created_at__lte=cutoff).select_related("owner")
+    )
+    if not notes:
+        return 0
+
+    Note.objects.filter(id__in=[n.id for n in notes]).update(
+        status=Note.Status.UNVERIFIED, published_at=timezone.now()
+    )
+    for n in notes:
+        notify(
+            n.owner,
+            f'Your note "{n.title}" is now public (not yet verified).',
+            reverse("notes:detail", args=[n.pk]),
+        )
+    return len(notes)
+
 
 def visible_notes(user):
     published = Note.objects.filter(
@@ -88,6 +149,18 @@ def can_view_note(user, note):
         return True
     return visible_notes(user).filter(pk=note.pk).exists()
 
+
+def reviewable_notes(user):
+    waiting = Note.objects.filter(
+        status__in=[Note.Status.PENDING, Note.Status.UNVERIFIED]
+    ).select_related("owner", "department", "batch")
+    if user.is_superuser:
+        return waiting
+    return waiting.filter(batch_id__in=reviewer_batch_ids(user)).exclude(owner=user)
+
+
+def can_review(user, note):
+    return reviewable_notes(user).filter(pk=note.pk).exists()
 
 
 def can_upload(user):
@@ -155,25 +228,3 @@ def make_preview(note):
         return True
     except Exception:
         return False
-    
-    
-
-def reviewable_notes(user):
-    pending = Note.objects.filter(status=Note.Status.PENDING).select_related(
-        "owner", "department", "batch"
-    )
-    if user.is_superuser:
-        return pending
-    return pending.filter(batch_id__in=reviewer_batch_ids(user)).exclude(owner=user)
-
-
-def can_review(user, note):
-    return reviewable_notes(user).filter(pk=note.pk).exists()
-
-
-@transaction.atomic
-def reject_note(note, reviewer, reason):
-    note.status = Note.Status.REJECTED
-    note.reviewed_by = reviewer
-    note.rejection_reason = reason.strip()
-    note.save()
