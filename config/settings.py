@@ -84,20 +84,62 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
+import sys
+from urllib.parse import parse_qs, unquote, urlparse
+
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+# Neon Postgres best practice: Use unpooled direct connection for migrations/schema commands,
+# and pooled connection (DATABASE_URL) for regular application traffic.
+is_migration_command = any(
+    cmd in sys.argv for cmd in ['migrate', 'makemigrations', 'showmigrations', 'sqlmigrate', 'dbshell']
+)
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
-        
+db_url = None
+if is_migration_command and os.getenv('DATABASE_URL_UNPOOLED'):
+    db_url = os.getenv('DATABASE_URL_UNPOOLED')
+elif os.getenv('DATABASE_URL'):
+    db_url = os.getenv('DATABASE_URL')
+
+if db_url:
+    parsed_db = urlparse(db_url)
+    db_options = {}
+    if parsed_db.query:
+        query_params = parse_qs(parsed_db.query)
+        for key, vals in query_params.items():
+            if vals:
+                db_options[key] = vals[0]
+
+    if 'sslmode' not in db_options:
+        db_options['sslmode'] = 'require'
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': unquote(parsed_db.path.lstrip('/')),
+            'USER': unquote(parsed_db.username or ''),
+            'PASSWORD': unquote(parsed_db.password or ''),
+            'HOST': parsed_db.hostname or 'localhost',
+            'PORT': str(parsed_db.port or '5432'),
+            'OPTIONS': db_options,
+        }
     }
-}
+else:
+    db_options = {}
+    if os.getenv('DB_HOST', '').endswith('.neon.tech'):
+        db_options['sslmode'] = 'require'
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'gayn_kotor'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', ''),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'OPTIONS': db_options,
+        }
+    }
 
 
 # Password validation
