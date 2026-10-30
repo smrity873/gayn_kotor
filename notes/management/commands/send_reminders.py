@@ -55,3 +55,4 @@ class Command(BaseCommand):
                     f"Completed. Executed {updated} deadline actions and {overdue} overdue note publications."
                 )
             )
+

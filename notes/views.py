@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -36,6 +38,7 @@ from .services import (
     can_remove_note,
 )
 
+UPLOAD_REWARD = 10
 DOWNLOAD_COST = 5
 RATER_REWARD = 1
 OWNER_REWARD = 5

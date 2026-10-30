@@ -16,7 +16,7 @@ from credits.models import CreditLedger
 from credits.services import add_entry
 from notifications.services import notify, notify_many
 
-from .models import Note
+from .models import Note, NoteDownload
 
 UPLOAD_REWARD = 10
 
