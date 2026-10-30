@@ -83,3 +83,19 @@ def resend_verification(request):
     cache.set(cache_key, True, timeout=60)
     messages.success(request, _("Verification email sent! Please check your inbox."))
     return redirect("core:home")
+
+
+@login_required
+def profile(request):
+    user = request.user
+    context = {
+        "profile_user": user,
+    }
+    if user.role == User.Role.STUDENT and hasattr(user, "membership"):
+        context["membership"] = user.membership
+        context["batch"] = user.membership.batch
+        context["department"] = user.membership.batch.department
+    elif user.role == User.Role.LECTURER:
+        context["batches"] = user.class_teacher_of.select_related("department").all()
+
+    return render(request, "accounts/profile.html", context)
