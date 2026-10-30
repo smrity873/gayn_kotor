@@ -30,6 +30,7 @@ from .services import (
     search_notes,
     visible_notes,
     publish_overdue_notes,
+    trigger_deadlines_lazy,
 )
 
 DOWNLOAD_COST = 5
@@ -41,7 +42,7 @@ OWNER_DAILY_CAP = 10
 
 @login_required
 def note_list(request):
-    publish_overdue_notes()
+    trigger_deadlines_lazy()
     tab = "mine" if request.GET.get("tab") == "mine" else "all"
 
     if tab == "mine":
@@ -135,7 +136,7 @@ def upload(request):
 def review_list(request):
     if not (request.user.is_superuser or reviewer_batch_ids(request.user)):
         raise PermissionDenied
-    publish_overdue_notes()
+    trigger_deadlines_lazy()
     notes = reviewable_notes(request.user).order_by("created_at")
     return render(request, "notes/review_list.html", {"notes": notes})
 

@@ -2,6 +2,7 @@ import re
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Q, Value
@@ -219,6 +220,18 @@ def process_review_deadlines(now=None):
                 updated_count += 1
 
     return updated_count
+
+
+def trigger_deadlines_lazy():
+    """Runs review deadline engine throttled by cache (at most once every 5 minutes)."""
+    key = "notes_deadline_engine_last_run"
+    if cache.add(key, "1", timeout=300):
+        try:
+            process_review_deadlines()
+            publish_overdue_notes()
+        except Exception:
+            cache.delete(key)
+            raise
 
 
 def visible_notes(user):
