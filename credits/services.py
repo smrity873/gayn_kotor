@@ -65,3 +65,31 @@ def grant_signup_bonus(user):
     except Exception:
         pass
     return entry
+
+
+def fulfill_credit_topup(order):
+    """Fulfills a PaymentOrder with purpose='credit_topup'.
+    Computes credits server-side: credits = int(order.amount_bdt / CREDIT_PRICE_BDT)
+    Writes a PURCHASE ledger entry and notifies the user.
+    """
+    from decimal import Decimal
+
+    credit_price = getattr(settings, "CREDIT_PRICE_BDT", Decimal("1"))
+    credits_to_add = int(order.amount_bdt / credit_price)
+
+    add_entry(
+        user=order.user,
+        amount=credits_to_add,
+        reason=CreditLedger.Reason.PURCHASE,
+        description=f"Purchased via {order.gateway} (Order #{str(order.id)[:8]})",
+        notify=False,
+    )
+
+    try:
+        notify(
+            order.user,
+            f"Payment successful! You received {credits_to_add} nuts for {order.amount_bdt} BDT.",
+            reverse("credits:hollow"),
+        )
+    except Exception:
+        pass
