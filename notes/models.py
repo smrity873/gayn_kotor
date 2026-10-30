@@ -49,6 +49,7 @@ class Note(models.Model):
         UNVERIFIED = "unverified", _("Published (unverified)")
         REJECTED = "rejected", _("Rejected")
         REMOVED = "removed", _("Removed")
+        FLAGGED = "flagged", _("Flagged")
 
     class Visibility(models.TextChoices):
         PUBLIC = "public", _("Everyone")
@@ -111,6 +112,10 @@ class Note(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     published_at = models.DateTimeField(null=True, blank=True)
     reward_paid = models.BooleanField(default=False)
+    cr_reminded_at = models.DateTimeField(null=True, blank=True)
+    escalated_at = models.DateTimeField(null=True, blank=True)
+    last_reminder_at = models.DateTimeField(null=True, blank=True)
+    status_before_flag = models.CharField(max_length=12, blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]

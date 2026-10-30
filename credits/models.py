@@ -15,6 +15,7 @@ class CreditLedger(models.Model):
         SWAP_RETURN = "swap_return", _("Skill swap deposit returned")
         SWAP_FORFEIT = "swap_forfeit", _("Skill swap deposit forfeited")
         ADMIN = "admin", _("Admin adjustment")
+        REVERSAL = "reversal", _("Reversal")
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
