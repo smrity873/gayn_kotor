@@ -145,12 +145,14 @@ def review_detail(request, pk):
         raise Http404
     return render(request, "notes/review_detail.html", {"note": note})
 
-
 @login_required
 @require_POST
 def review_action(request, pk):
     note = get_object_or_404(Note, pk=pk)
-    if not can_review(request.user, note):
+    is_reviewer = request.user.is_superuser or (
+        note.batch_id and note.batch_id in reviewer_batch_ids(request.user) and note.owner_id != request.user.id
+    )
+    if not is_reviewer:
         raise Http404
 
     action = request.POST.get("action")
