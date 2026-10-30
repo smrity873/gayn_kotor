@@ -265,9 +265,16 @@ def reviewer_batch_ids(user):
 
 
 def can_view_note(user, note):
-    if note.owner_id == user.id or user.is_superuser:
+    if note.status == Note.Status.REMOVED:
+        if user.is_authenticated and (note.owner_id == user.id or user.is_superuser):
+            return True
+        return False
+
+    if user.is_authenticated and (note.owner_id == user.id or user.is_superuser):
         return True
-    if note.batch_id and note.batch_id in reviewer_batch_ids(user):
+    if user.is_authenticated and note.batch_id and note.batch_id in reviewer_batch_ids(user):
+        return True
+    if user.is_authenticated and NoteDownload.objects.filter(user=user, note=note).exists():
         return True
     return visible_notes(user).filter(pk=note.pk).exists()
 
@@ -350,3 +357,36 @@ def make_preview(note):
         return True
     except Exception:
         return False
+
+@transaction.atomic
+def remove_note(note, by, reason, reverse_reward=False):
+    """Sets REMOVED, notifies the owner, and if reverse_reward and the reward was paid,
+    writes a REVERSAL ledger row with allow_negative=True."""
+    note.status = Note.Status.REMOVED
+    note.save(update_fields=["status"])
+
+    if reverse_reward and note.reward_paid:
+        add_entry(
+            note.owner,
+            -UPLOAD_REWARD,
+            CreditLedger.Reason.REVERSAL,
+            f"Reward reversed: {reason}",
+            allow_negative=True,
+            notify=False,
+        )
+
+    notify(
+        note.owner,
+        f'Your note "{note.title}" was removed by {by.get_full_name() or by.username}. Reason: {reason}',
+        "",
+    )
+
+
+def can_remove_note(user, note):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    if note.batch and note.batch.class_teacher_id == user.id:
+        return True
+    return False

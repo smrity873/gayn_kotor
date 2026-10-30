@@ -32,6 +32,8 @@ from .services import (
     visible_notes,
     publish_overdue_notes,
     trigger_deadlines_lazy,
+    remove_note,
+    can_remove_note,
 )
 
 DOWNLOAD_COST = 5
@@ -190,17 +192,16 @@ def review_action(request, pk):
 def note_file(request, pk):
     note = get_object_or_404(Note, pk=pk)
     user = request.user
-    is_privileged = note.owner_id == user.id or user.is_superuser or can_review(user, note)
+    is_privileged = note.owner_id == user.id or user.is_superuser
     if note.status == Note.Status.REMOVED and not is_privileged:
         raise Http404
-    
-    # Check if user has already downloaded/unlocked the note
+
     has_downloaded = NoteDownload.objects.filter(user=user, note=note).exists()
-    
-    # Allow access if owner, superuser, reviewer, OR has downloaded
-    if not (is_privileged or has_downloaded):
+    is_reviewer = note.batch_id and note.batch_id in reviewer_batch_ids(user)
+
+    if not (is_privileged or is_reviewer or has_downloaded):
         raise Http404
-        
+
     return FileResponse(note.file.open("rb"), content_type="application/pdf")
 
 
@@ -225,6 +226,9 @@ def note_detail(request, pk):
     stats = NoteRating.objects.filter(note=note).aggregate(avg=Avg("rating"), count=Count("id"))
     reviews = NoteRating.objects.filter(note=note).select_related("user").order_by("-id")[:10]
 
+    can_remove = can_remove_note(user, note)
+    has_reported = user.is_authenticated and (not is_owner) and NoteReport.objects.filter(user=user, note=note).exists()
+
     return render(request, "notes/note_detail.html", {
         "note": note,
         "is_owner": is_owner,
@@ -236,6 +240,9 @@ def note_detail(request, pk):
         "reviews": reviews,
         "download_cost": DOWNLOAD_COST,
         "can_afford": get_balance(user) >= DOWNLOAD_COST,
+        "can_remove": can_remove,
+        "has_reported": has_reported,
+        "report_reasons": NoteReport.Reason.choices,
     })
 
 
@@ -437,3 +444,109 @@ def appeal_action(request, pk):
             messages.info(request, f'Appeal upheld. "{locked_appeal.note.title}" remains rejected.')
 
     return redirect("notes:appeals_list")
+
+
+@login_required
+@verified_required
+@require_POST
+def report_note(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    if not can_view_note(request.user, note):
+        raise Http404
+
+    if note.owner_id == request.user.id:
+        messages.error(request, "You cannot report your own note.")
+        return redirect("notes:detail", pk=pk)
+
+    reason = request.POST.get("reason", NoteReport.Reason.OTHER)
+    if reason not in NoteReport.Reason.values:
+        reason = NoteReport.Reason.OTHER
+    details = request.POST.get("details", "").strip()[:500]
+
+    existing = NoteReport.objects.filter(note=note, user=request.user).first()
+    if existing:
+        messages.info(request, "You have already reported this note.")
+        return redirect("notes:detail", pk=pk)
+
+    NoteReport.objects.create(note=note, user=request.user, reason=reason, details=details)
+    messages.success(request, "Thank you. Your report has been submitted.")
+
+    distinct_reporters = NoteReport.objects.filter(note=note).count()
+    threshold = getattr(settings, "NOTE_REPORT_THRESHOLD", 3)
+    if distinct_reporters >= threshold and note.status != Note.Status.FLAGGED:
+        note.status_before_flag = note.status
+        note.status = Note.Status.FLAGGED
+        note.save(update_fields=["status", "status_before_flag"])
+        if note.batch and note.batch.class_teacher:
+            notify(
+                note.batch.class_teacher,
+                f'Note "{note.title}" in {note.batch.name} was flagged after {distinct_reporters} reports.',
+                reverse("notes:flagged_list"),
+            )
+
+    return redirect("notes:detail", pk=pk)
+
+
+@login_required
+def flagged_list(request):
+    if not (request.user.is_superuser or request.user.class_teacher_of.exists()):
+        raise PermissionDenied("Only class teachers can view flagged notes.")
+
+    if request.user.is_superuser:
+        flagged_notes = Note.objects.filter(status=Note.Status.FLAGGED).select_related(
+            "owner", "batch", "department"
+        ).prefetch_related("reports", "reports__user")
+    else:
+        batches = request.user.class_teacher_of.all()
+        flagged_notes = Note.objects.filter(status=Note.Status.FLAGGED, batch__in=batches).select_related(
+            "owner", "batch", "department"
+        ).prefetch_related("reports", "reports__user")
+
+    return render(request, "notes/flagged_list.html", {"flagged_notes": flagged_notes})
+
+
+@login_required
+@require_POST
+def flagged_action(request, pk):
+    note = get_object_or_404(Note.objects.select_related("batch", "owner"), pk=pk)
+    is_teacher = note.batch and note.batch.class_teacher_id == request.user.id
+    if not (request.user.is_superuser or is_teacher):
+        raise PermissionDenied
+
+    action = request.POST.get("action")
+    if action == "dismiss":
+        note.status = note.status_before_flag or Note.Status.APPROVED
+        note.status_before_flag = None
+        note.save(update_fields=["status", "status_before_flag"])
+        NoteReport.objects.filter(note=note, resolved_at__isnull=True).update(
+            resolved_at=timezone.now(), resolved_by=request.user
+        )
+        messages.success(request, f'Flags on "{note.title}" dismissed and note restored.')
+    elif action == "remove":
+        reason = request.POST.get("reason", "").strip() or "Violates community guidelines"
+        reverse_reward = request.POST.get("reverse_reward") in ("1", "true", "True", "on")
+        remove_note(note, by=request.user, reason=reason, reverse_reward=reverse_reward)
+        NoteReport.objects.filter(note=note, resolved_at__isnull=True).update(
+            resolved_at=timezone.now(), resolved_by=request.user
+        )
+        messages.success(request, f'Note "{note.title}" removed.')
+
+    return redirect("notes:flagged_list")
+
+
+@login_required
+@require_POST
+def remove_note_view(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    if not can_remove_note(request.user, note):
+        raise PermissionDenied
+
+    reason = request.POST.get("reason", "").strip()
+    if not reason:
+        messages.error(request, "A reason is required to remove this note.")
+        return redirect("notes:detail", pk=pk)
+
+    reverse_reward = request.POST.get("reverse_reward") in ("1", "true", "True", "on")
+    remove_note(note, by=request.user, reason=reason, reverse_reward=reverse_reward)
+    messages.success(request, f'Note "{note.title}" removed.')
+    return redirect("notes:list")
