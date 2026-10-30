@@ -1,3 +1,4 @@
+from decimal import Decimal
 """
 Django settings for config project.
 
@@ -65,6 +66,7 @@ INSTALLED_APPS = [
     'notes',
     'notifications',
     'courses',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -248,3 +250,10 @@ SITE_NAME = os.getenv("SITE_NAME", "Gayn Kotor")
 SIGNUP_BONUS = int(os.getenv("SIGNUP_BONUS", "30"))
 ALLOWED_EMAIL_DOMAINS = [d.strip().lower() for d in os.getenv("ALLOWED_EMAIL_DOMAINS", "").split(",") if d.strip()]
 
+
+# Payments & Credits Top-up (Phase 3)
+CREDIT_PRICE_BDT = Decimal(os.getenv("CREDIT_PRICE_BDT", "1"))
+CREDIT_TOPUP_MIN = int(os.getenv("CREDIT_TOPUP_MIN", "10"))
+CREDIT_TOPUP_MAX = int(os.getenv("CREDIT_TOPUP_MAX", "5000"))
+PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "sandbox")
+SANDBOX_ALLOWED = os.getenv("SANDBOX_ALLOWED", "True").lower() in ("true", "1", "yes")
