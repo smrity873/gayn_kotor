@@ -17,7 +17,8 @@ from credits.models import CreditLedger
 from credits.services import add_entry, get_balance
 
 from .forms import NoteForm
-from .models import Note, NoteDownload, NoteRating
+from notifications.services import notify
+from .models import Note, NoteDownload, NoteRating, NoteAppeal, NoteReport
 from .services import (
     approve_note,
     can_review,
@@ -317,3 +318,122 @@ def note_rate(request, pk):
     else:
         messages.success(request, "Thanks for rating! You reached today's nut limit for ratings.")
     return back
+
+@login_required
+@verified_required
+def note_appeal(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    if note.owner_id != request.user.id or note.status != Note.Status.REJECTED:
+        raise PermissionDenied("You can only appeal rejected notes that belong to you.")
+
+    if NoteAppeal.objects.filter(note=note, status=NoteAppeal.Status.OPEN).exists():
+        messages.info(request, "An appeal is already pending review for this note.")
+        return redirect(f"{reverse('notes:list')}?tab=mine")
+
+    if request.method == "POST":
+        message = request.POST.get("message", "").strip()[:500]
+        if not message:
+            messages.error(request, "Please enter a message explaining why this rejection should be reviewed.")
+            return render(request, "notes/note_appeal.html", {"note": note})
+
+        NoteAppeal.objects.create(note=note, user=request.user, message=message)
+        if note.batch and note.batch.class_teacher:
+            notify(
+                note.batch.class_teacher,
+                f'Appeal submitted for rejected note "{note.title}" by {request.user.get_full_name() or request.user.username}.',
+                reverse("notes:appeals_list"),
+            )
+        messages.success(request, "Your appeal has been submitted to your class teacher.")
+        return redirect(f"{reverse('notes:list')}?tab=mine")
+
+    return render(request, "notes/note_appeal.html", {"note": note})
+
+
+@login_required
+def appeals_list(request):
+    if not (request.user.is_superuser or request.user.class_teacher_of.exists()):
+        raise PermissionDenied("Only class teachers can review appeals.")
+
+    if request.user.is_superuser:
+        appeals = NoteAppeal.objects.all().select_related("note", "user", "decided_by", "note__batch")
+    else:
+        teacher_batches = request.user.class_teacher_of.all()
+        appeals = NoteAppeal.objects.filter(note__batch__in=teacher_batches).select_related(
+            "note", "user", "decided_by", "note__batch"
+        )
+
+    from django.db.models import Case, When, Value, IntegerField
+    appeals = appeals.annotate(
+        is_open=Case(
+            When(status=NoteAppeal.Status.OPEN, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField(),
+        )
+    ).order_by("is_open", "-created_at")
+
+    return render(request, "notes/appeals_list.html", {"appeals": appeals})
+
+
+@login_required
+@require_POST
+def appeal_action(request, pk):
+    appeal = get_object_or_404(NoteAppeal.objects.select_related("note", "note__batch", "user"), pk=pk)
+    is_teacher = appeal.note.batch and appeal.note.batch.class_teacher_id == request.user.id
+    if not (request.user.is_superuser or is_teacher):
+        raise PermissionDenied
+
+    if appeal.status != NoteAppeal.Status.OPEN:
+        messages.info(request, "This appeal has already been decided.")
+        return redirect("notes:appeals_list")
+
+    action = request.POST.get("action")
+    decision_note = request.POST.get("decision_note", "").strip()
+
+    if action == "uphold" and not decision_note:
+        messages.error(request, "Upholding an appeal requires a reason.")
+        return redirect("notes:appeals_list")
+
+    with transaction.atomic():
+        locked_appeal = NoteAppeal.objects.select_for_update().get(pk=pk)
+        if locked_appeal.status != NoteAppeal.Status.OPEN:
+            messages.info(request, "This appeal has already been decided.")
+            return redirect("notes:appeals_list")
+
+        locked_appeal.decided_by = request.user
+        locked_appeal.decided_at = timezone.now()
+        locked_appeal.decision_note = decision_note
+
+        teacher_name = request.user.get_full_name() or request.user.username
+
+        if action == "grant":
+            locked_appeal.status = NoteAppeal.Status.GRANTED
+            locked_appeal.save()
+            approve_note(locked_appeal.note, reviewer=request.user)
+            notify(
+                locked_appeal.user,
+                f'Your appeal for "{locked_appeal.note.title}" was granted! The note is approved.',
+                reverse("notes:detail", args=[locked_appeal.note.pk]),
+            )
+            if locked_appeal.note.reviewed_by and locked_appeal.note.reviewed_by_id != request.user.id:
+                notify(
+                    locked_appeal.note.reviewed_by,
+                    f'The rejection for "{locked_appeal.note.title}" was overturned on appeal by class teacher {teacher_name}.',
+                    reverse("notes:detail", args=[locked_appeal.note.pk]),
+                )
+            messages.success(request, f'Appeal granted. "{locked_appeal.note.title}" is now approved.')
+        elif action == "uphold":
+            locked_appeal.status = NoteAppeal.Status.UPHELD
+            locked_appeal.save()
+            notify(
+                locked_appeal.user,
+                f'Your appeal for "{locked_appeal.note.title}" was upheld. Reason: {decision_note}',
+                f"{reverse('notes:list')}?tab=mine",
+            )
+            if locked_appeal.note.reviewed_by and locked_appeal.note.reviewed_by_id != request.user.id:
+                notify(
+                    locked_appeal.note.reviewed_by,
+                    f'The appeal for "{locked_appeal.note.title}" was reviewed and upheld by class teacher {teacher_name}.',
+                )
+            messages.info(request, f'Appeal upheld. "{locked_appeal.note.title}" remains rejected.')
+
+    return redirect("notes:appeals_list")

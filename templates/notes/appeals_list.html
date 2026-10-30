@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Note Appeals - {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+
+    <div class="flex flex-col gap-1">
+        <h1 class="text-3xl font-bold text-green-900 dark:text-green-50">Note Appeals</h1>
+        <p class="text-green-900/70 dark:text-green-100/70">
+            Student appeals against note rejections in your batches. Class teacher review only.
+        </p>
+    </div>
+
+    <p class="mt-6 text-sm text-green-900/60 dark:text-green-100/60">{{ appeals|length }} total appeal{{ appeals|length|pluralize }}</p>
+
+    <div class="mt-4 space-y-6">
+        {% for appeal in appeals %}
+        <article class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm transition hover:shadow-md dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-green-100 pb-4 dark:border-green-900/60">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded-full bg-green-100 px-3 py-0.5 text-xs font-bold text-green-800 dark:bg-green-900/50 dark:text-green-200">
+                        {{ appeal.note.course_code }}
+                    </span>
+                    <span class="text-xs text-green-900/60 dark:text-green-100/60">{{ appeal.note.batch|default:"-" }}</span>
+                    {% if appeal.status == 'open' %}
+                    <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Open Appeal</span>
+                    {% elif appeal.status == 'granted' %}
+                    <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">Granted</span>
+                    {% elif appeal.status == 'upheld' %}
+                    <span class="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-800 dark:bg-rose-900/50 dark:text-rose-200">Upheld (Rejected)</span>
+                    {% endif %}
+                </div>
+                <span class="text-xs text-green-900/60 dark:text-green-100/60">{{ appeal.created_at|date:"d M Y, h:i A" }}</span>
+            </div>
+
+            <div class="mt-4">
+                <h2 class="text-lg font-bold text-green-900 dark:text-green-50">
+                    <a href="{% url 'notes:review_detail' appeal.note.pk %}" class="hover:underline">
+                        {{ appeal.note.title }}
+                    </a>
+                </h2>
+                <p class="mt-1 text-xs text-green-900/60 dark:text-green-100/60">
+                    Uploaded by <span class="font-semibold text-green-900 dark:text-green-200">{{ appeal.user.get_full_name|default:appeal.user.username }}</span>
+                </p>
+
+                <!-- Rejection info -->
+                {% if appeal.note.rejection_reason %}
+                <div class="mt-3 rounded-xl bg-red-50/50 p-3 text-xs dark:bg-red-950/20">
+                    <span class="font-bold text-red-800 dark:text-red-300">Rejection reason:</span>
+                    <span class="text-red-900 dark:text-red-200">{{ appeal.note.rejection_reason }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Student message -->
+                <div class="mt-3 rounded-xl bg-green-50/50 p-3 text-sm dark:bg-green-900/30">
+                    <p class="text-xs font-bold uppercase tracking-wider text-green-900/70 dark:text-green-100/70">Student's Appeal Message:</p>
+                    <p class="mt-1 text-green-900 dark:text-green-100">{{ appeal.message }}</p>
+                </div>
+
+                <!-- Decision info if decided -->
+                {% if appeal.status != 'open' %}
+                <div class="mt-3 rounded-xl border border-green-200/50 bg-green-50/30 p-3 text-xs dark:border-green-800 dark:bg-green-900/20">
+                    <span class="font-bold text-green-900 dark:text-green-100">Decided by {{ appeal.decided_by.get_full_name|default:appeal.decided_by.username }}</span>
+                    {% if appeal.decision_note %}
+                    <p class="mt-1 text-green-900/80 dark:text-green-200">Note: {{ appeal.decision_note }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if appeal.status == 'open' %}
+            <div class="mt-5 border-t border-green-100 pt-4 dark:border-green-900/60">
+                <form method="post" action="{% url 'notes:appeal_action' appeal.pk %}" class="space-y-3">
+                    {% csrf_token %}
+                    <div>
+                        <label for="id_note_{{ appeal.pk }}" class="block text-xs font-semibold text-green-900/70 dark:text-green-100/70">Decision note / Reason (required if upholding rejection):</label>
+                        <input type="text" id="id_note_{{ appeal.pk }}" name="decision_note" placeholder="Add feedback or justification..."
+                               class="mt-1 w-full rounded-xl border border-green-200 bg-white px-3 py-2 text-sm text-green-950 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/30 dark:border-green-800 dark:bg-canvas-dark dark:text-green-50">
+                    </div>
+                    <div class="flex flex-wrap items-center justify-end gap-3">
+                        <button type="submit" name="action" value="uphold"
+                                class="rounded-full border border-red-300 px-5 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30">
+                            Uphold Rejection
+                        </button>
+                        <button type="submit" name="action" value="grant"
+                                class="rounded-full bg-green-600 px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700">
+                            Grant Appeal & Approve Note
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </article>
+        {% empty %}
+        <div class="rounded-2xl border border-dashed border-green-200 px-6 py-16 text-center dark:border-green-800">
+            <svg class="mx-auto h-12 w-12 text-green-600/50 dark:text-green-300/40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="m8 12.5 2.8 2.8L16 9.5"/></svg>
+            <p class="mt-3 font-semibold text-green-900 dark:text-green-50">No appeals</p>
+            <p class="mt-1 text-sm text-green-900/60 dark:text-green-100/60">There are no appeals to review for your batches.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

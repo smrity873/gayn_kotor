@@ -14,6 +14,11 @@ urlpatterns = [
     path("reviews/", views.review_list, name="review_list"),
     path("reviews/<int:pk>/", views.review_detail, name="review_detail"),
     path("reviews/<int:pk>/action/", views.review_action, name="review_action"),
+
+    # Appeals
+    path("appeals/", views.appeals_list, name="appeals_list"),
+    path("appeals/<int:pk>/action/", views.appeal_action, name="appeal_action"),
+    path("<int:pk>/appeal/", views.note_appeal, name="appeal"),
     path("<int:pk>/file/", views.note_file, name="file"),
     path('<int:pk>/', views.note_detail, name='detail'),
     path('<int:pk>/download/', views.note_download, name='download'),

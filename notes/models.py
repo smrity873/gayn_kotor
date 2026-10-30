@@ -151,6 +151,7 @@ class NoteDownload(models.Model):
         return f"{self.user.username} downloaded {self.note.title}"
     
 class NoteRating(models.Model):
+    owner_rewarded = models.BooleanField(default=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='given_ratings')
     note = models.ForeignKey('Note', on_delete=models.CASCADE, related_name='ratings')
     rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
@@ -162,3 +163,69 @@ class NoteRating(models.Model):
 
     def __str__(self):
         return f"{self.user.username} rated {self.note.title} {self.rating}/5"
+
+
+class NoteAppeal(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open", _("Open")
+        UPHELD = "upheld", _("Upheld")
+        GRANTED = "granted", _("Granted")
+
+    note = models.ForeignKey(Note, on_delete=models.CASCADE, related_name="appeals")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="note_appeals",
+    )
+    message = models.TextField(max_length=500)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN)
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="decided_note_appeals",
+    )
+    decision_note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Appeal for {self.note.title} by {self.user} ({self.status})"
+
+
+class NoteReport(models.Model):
+    class Reason(models.TextChoices):
+        INACCURATE = "inaccurate", _("Inaccurate / Incorrect Content")
+        COPYRIGHT = "copyright", _("Copyright Violation")
+        SPAM = "spam", _("Spam or Irrelevant")
+        OFFENSIVE = "offensive", _("Inappropriate or Offensive")
+        OTHER = "other", _("Other Issue")
+
+    note = models.ForeignKey(Note, on_delete=models.CASCADE, related_name="reports")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="note_reports",
+    )
+    reason = models.CharField(max_length=20, choices=Reason.choices, default=Reason.OTHER)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_note_reports",
+    )
+
+    class Meta:
+        unique_together = ("note", "user")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Report on {self.note.title} by {self.user} ({self.reason})"
