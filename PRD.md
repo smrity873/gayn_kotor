@@ -83,7 +83,7 @@ The upload did not include `config/settings.py`, `config/urls.py`, `accounts/*`,
 - Failure of an email or notification must never roll back a credit or payment action.
 
 **Files**
-- Files and media should store in object storage (firebase free s3 storage or other free tier), never store in static project folders most of the server refuse this.
+- Files and media should store in object storage (neon db s3 object storage), never store in static project folders most of the server refuse this.
 
 **Code style (match what exists)**
 - Business logic in `services.py`; views stay thin.
