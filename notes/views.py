@@ -137,7 +137,7 @@ def review_list(request):
     if not (request.user.is_superuser or reviewer_batch_ids(request.user)):
         raise PermissionDenied
     trigger_deadlines_lazy()
-    notes = reviewable_notes(request.user).order_by("created_at")
+    notes = reviewable_notes(request.user).order_by(F("escalated_at").desc(nulls_last=True), "created_at")
     return render(request, "notes/review_list.html", {"notes": notes})
 
 
