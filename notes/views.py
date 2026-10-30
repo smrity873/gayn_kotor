@@ -271,6 +271,26 @@ def note_download(request, pk):
                     f"Unlocked note: {note.title}",
                 )
                 Note.objects.filter(pk=note.pk).update(download_count=F("download_count") + 1)
+
+                locked_note = Note.objects.select_for_update().get(pk=note.pk)
+                if locked_note.status == Note.Status.UNVERIFIED and not locked_note.reward_paid:
+                    downloads_count = NoteDownload.objects.filter(note=locked_note).count()
+                    threshold = getattr(settings, "NOTE_UNVERIFIED_REWARD_DOWNLOADS", 3)
+                    if downloads_count >= threshold:
+                        locked_note.reward_paid = True
+                        locked_note.save(update_fields=["reward_paid"])
+                        add_entry(
+                            locked_note.owner,
+                            UPLOAD_REWARD,
+                            CreditLedger.Reason.NOTE_UPLOAD,
+                            f'Upload reward for "{locked_note.title}" released after {downloads_count} downloads',
+                            notify=False,
+                        )
+                        notify(
+                            locked_note.owner,
+                            f'Your unverified note "{locked_note.title}" reached {downloads_count} downloads! You earned {UPLOAD_REWARD} nuts.',
+                            reverse("notes:detail", args=[locked_note.pk]),
+                        )
     except ValueError:
         messages.error(request, f"You need {DOWNLOAD_COST} nuts to unlock this note.")
         return redirect("notes:detail", pk=note.pk)
@@ -311,14 +331,32 @@ def note_rate(request, pk):
             messages.error(request, "You have already rated this note.")
             return back
 
-        NoteRating.objects.create(user=user, note=note, rating=value, review=review_text)
+        max_raters = getattr(settings, "NOTE_MAX_REWARDED_RATERS", 10)
+        rewarded_raters_count = NoteRating.objects.filter(note=note, owner_rewarded=True).count()
+        can_reward_owner = rewarded_raters_count < max_raters
+
+        owner_paid = can_reward_owner and (earned_today(note.owner, CreditLedger.Reason.RATING_RECEIVED) < OWNER_DAILY_CAP)
+
+        NoteRating.objects.create(
+            user=user,
+            note=note,
+            rating=value,
+            review=review_text,
+            owner_rewarded=can_reward_owner,
+        )
 
         rater_paid = earned_today(user, CreditLedger.Reason.RATING_GIVEN) < RATER_DAILY_CAP
-        owner_paid = earned_today(note.owner, CreditLedger.Reason.RATING_RECEIVED) < OWNER_DAILY_CAP
         if rater_paid:
-            add_entry(user, RATER_REWARD, CreditLedger.Reason.RATING_GIVEN, f"Rated note: {note.title}")
+            add_entry(user, RATER_REWARD, CreditLedger.Reason.RATING_GIVEN, f"Rated note: {note.title}", notify=False)
         if owner_paid:
-            add_entry(note.owner, OWNER_REWARD, CreditLedger.Reason.RATING_RECEIVED, f"Rating on note: {note.title}")
+            add_entry(note.owner, OWNER_REWARD, CreditLedger.Reason.RATING_RECEIVED, f"Rating on note: {note.title}", notify=False)
+
+        owner_nuts = OWNER_REWARD if owner_paid else 0
+        notify(
+            note.owner,
+            f'Your note "{note.title}" received a {value}-star rating and {owner_nuts} nuts!',
+            reverse("notes:detail", args=[note.pk]),
+        )
 
     if rater_paid:
         messages.success(request, f"Thanks for rating! You earned {RATER_REWARD} nut.")
