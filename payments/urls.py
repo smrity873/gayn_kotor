@@ -10,3 +10,4 @@ urlpatterns = [
     path("sandbox/<uuid:order_id>/", views.sandbox_view, name="sandbox"),
     path("callback/", views.gateway_callback, name="callback"),
 ]
+

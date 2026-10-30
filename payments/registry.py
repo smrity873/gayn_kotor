@@ -19,3 +19,4 @@ def get_fulfiller(purpose: str) -> Callable:
 def clear_fulfillers():
     """Clears all registered fulfillers (primarily for test cleanup)."""
     _FULFILLERS.clear()
+

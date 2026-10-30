@@ -22,3 +22,4 @@ class SandboxGateway(PaymentGateway):
             gateway_txn_id=txn_id,
             error_message=error_message,
         )
+

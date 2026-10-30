@@ -20,3 +20,4 @@ class PaymentGateway:
     def parse_callback(self, request) -> PaymentResult:
         """Parses the callback/return request and returns a PaymentResult."""
         raise NotImplementedError
+

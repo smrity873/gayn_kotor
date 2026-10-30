@@ -118,3 +118,4 @@ def gateway_callback(request):
     order = get_object_or_404(PaymentOrder, id=result.order_id)
     complete_order(order, result)
     return redirect("payments:order_detail", order_id=order.id)
+

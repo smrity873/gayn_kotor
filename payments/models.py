@@ -50,3 +50,4 @@ class PaymentOrder(models.Model):
 
     def __str__(self):
         return f"Order {self.id} ({self.get_purpose_display()} - {self.amount_bdt} BDT) - {self.status}"
+

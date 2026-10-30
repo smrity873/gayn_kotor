@@ -99,3 +99,4 @@ def complete_order(order: PaymentOrder, result: PaymentResult) -> PaymentOrder:
         return fulfil_order(order, gateway_txn_id=result.gateway_txn_id)
     else:
         return fail_order(order, reason=result.error_message)
+
