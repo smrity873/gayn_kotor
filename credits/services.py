@@ -15,18 +15,37 @@ def get_balance(user):
 
 
 @transaction.atomic
-def add_entry(user, amount, reason, description="", allow_negative=False):
+def add_entry(user, amount, reason, description="", allow_negative=False, notify=True):
     if amount < 0:
         get_user_model().objects.select_for_update().get(pk=user.pk)
         if not allow_negative and get_balance(user) + amount < 0:
             raise ValueError("Not enough credits.")
 
-    return CreditLedger.objects.create(
+    entry = CreditLedger.objects.create(
         user=user,
         amount=amount,
         reason=reason,
         description=description,
     )
+
+    if notify and amount != 0:
+        sign = "+" if amount > 0 else ""
+        msg = f"{sign}{amount} nuts"
+        if description:
+            msg += f": {description}"
+        else:
+            msg += f" ({reason.replace('_', ' ').capitalize()})"
+
+        def send_notif():
+            try:
+                from notifications.services import notify as send_notification
+                send_notification(user, msg, reverse("credits:hollow"))
+            except Exception:
+                pass
+
+        transaction.on_commit(send_notif)
+
+    return entry
 
 
 @transaction.atomic
@@ -36,7 +55,7 @@ def grant_signup_bonus(user):
         return None
 
     amount = getattr(settings, "SIGNUP_BONUS", 30)
-    entry = add_entry(user, amount, CreditLedger.Reason.SIGNUP_BONUS, "Welcome bonus")
+    entry = add_entry(user, amount, CreditLedger.Reason.SIGNUP_BONUS, "Welcome bonus", notify=False)
     try:
         notify(
             user,

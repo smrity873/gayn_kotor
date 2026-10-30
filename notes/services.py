@@ -69,6 +69,7 @@ def approve_note(note, reviewer=None):
             UPLOAD_REWARD,
             CreditLedger.Reason.NOTE_UPLOAD,
             f"Note approved: {note.title}",
+            notify=False,
         )
 
     if reviewer is not None:
