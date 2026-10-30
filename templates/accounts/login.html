@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Log in - Gayn Kotor{% endblock %}
+{% block title %}Log in - {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
 <section class="mx-auto max-w-md px-6 py-16">
@@ -9,7 +9,7 @@
         <div class="text-center">
             <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-green-600 text-3xl shadow-lg shadow-green-600/30">🐿️</div>
             <h1 class="mt-4 text-3xl font-bold text-green-900 dark:text-green-50">Welcome back</h1>
-            <p class="mt-2 text-green-900/70 dark:text-green-100/70">Log in to your Gayn Kotor account.</p>
+            <p class="mt-2 text-green-900/70 dark:text-green-100/70">Log in to your {{ SITE_NAME }} account.</p>
         </div>
 
         <form method="post" class="mt-8 space-y-5">

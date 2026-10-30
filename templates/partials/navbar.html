@@ -4,7 +4,7 @@
     <!-- Logo -->
     <a href="{% url 'core:home' %}" class="flex shrink-0 items-center gap-2">
       <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 text-xl shadow-md shadow-green-600/30">🐿️</span>
-      <span class="hidden text-xl font-bold text-green-800 dark:text-green-300 sm:inline">Gayn Kotor</span>
+      <span class="hidden text-xl font-bold text-green-800 dark:text-green-300 sm:inline">{{ SITE_NAME }}</span>
     </a>
 
     <!-- Search bar (large screens only) -->
@@ -167,7 +167,7 @@
     </form>
 
     {% else %}
-    <p class="mb-3 px-1 text-sm text-green-900/70 dark:text-green-100/70">Welcome to Gayn Kotor</p>
+    <p class="mb-3 px-1 text-sm text-green-900/70 dark:text-green-100/70">Welcome to {{ SITE_NAME }}</p>
     <div class="flex flex-col gap-2">
       <a href="{% url 'accounts:login' %}" class="rounded-full border border-green-600 py-2.5 text-center font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">Log in</a>
       <a href="{% url 'accounts:signup' %}" class="rounded-full bg-green-600 py-2.5 text-center font-semibold text-white transition hover:bg-green-700">Sign up</a>

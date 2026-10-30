@@ -92,6 +92,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'credits.context_processors.credit_balance',
+                'core.context_processors.site_name',
             ],
         },
     },
@@ -236,4 +237,5 @@ PRIVATE_MEDIA_ROOT = Path(os.getenv("PRIVATE_MEDIA_ROOT", str(BASE_DIR / "privat
 NOTE_ESCALATE_DAYS = int(os.getenv("NOTE_ESCALATE_DAYS", "3"))
 NOTE_AUTOPUBLISH_DAYS = int(os.getenv("NOTE_AUTOPUBLISH_DAYS", "7"))
 NOTE_MAX_UPLOAD_MB = int(os.getenv("NOTE_MAX_UPLOAD_MB", "20"))
+SITE_NAME = os.getenv("SITE_NAME", "Gayn Kotor")
 
