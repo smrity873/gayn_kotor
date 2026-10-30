@@ -18,4 +18,6 @@ urlpatterns = [
         name="login",
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("verify/<str:token>/", views.verify_email, name="verify"),
+    path("resend-verification/", views.resend_verification, name="resend_verification"),
 ]

@@ -217,9 +217,12 @@ STORAGES = {
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
+_email_backend = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@localhost")
+
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': _email_backend,
     },
 }
 
@@ -238,4 +241,6 @@ NOTE_ESCALATE_DAYS = int(os.getenv("NOTE_ESCALATE_DAYS", "3"))
 NOTE_AUTOPUBLISH_DAYS = int(os.getenv("NOTE_AUTOPUBLISH_DAYS", "7"))
 NOTE_MAX_UPLOAD_MB = int(os.getenv("NOTE_MAX_UPLOAD_MB", "20"))
 SITE_NAME = os.getenv("SITE_NAME", "Gayn Kotor")
+SIGNUP_BONUS = int(os.getenv("SIGNUP_BONUS", "30"))
+ALLOWED_EMAIL_DOMAINS = [d.strip().lower() for d in os.getenv("ALLOWED_EMAIL_DOMAINS", "").split(",") if d.strip()]
 

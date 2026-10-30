@@ -23,6 +23,11 @@ class User(AbstractUser):
         unique=True,
     )
     is_email_verified = models.BooleanField(default=False)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_verified(self):
+        return self.email_verified_at is not None
     REQUIRED_FIELDS = []
 
     def clean(self):
