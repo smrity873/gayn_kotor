@@ -10,9 +10,14 @@ def get_balance(user):
 
 
 @transaction.atomic
-def add_entry(user, amount, reason, description=""):
-    if amount < 0 and get_balance(user) + amount < 0:
-        raise ValueError("Not enough credits.")
+def add_entry(user, amount, reason, description="", allow_negative=False):
+    if amount < 0:
+        type(user).objects.select_for_update().get(pk=user.pk)
+        if not allow_negative and get_balance(user) + amount < 0:
+            raise ValueError("Not enough credits.")
+    
+
+
     return CreditLedger.objects.create(
         user=user,
         amount=amount,

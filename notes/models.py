@@ -7,19 +7,29 @@ import os
 import uuid
 from core.storage import private_storage
 
-from django.contrib.auth import get_user_model
-User = get_user_model()
+
+
 from django.core.validators import MinValueValidator, MaxValueValidator
 from datetime import timedelta
 
 from django.utils import timezone
 
-MAX_FILE_MB = 50
+def validate_pdf_header(file):
+    pos = file.tell() if hasattr(file, "tell") else 0
+    if hasattr(file, "seek"):
+        file.seek(0)
+    header = file.read(5)
+    if hasattr(file, "seek"):
+        file.seek(pos)
+    if header != b"%PDF-":
+        raise ValidationError(_("Invalid PDF file. The file does not have a valid PDF header."))
 
 
 def validate_file_size(file):
-    if file.size > MAX_FILE_MB * 1024 * 1024:
-        raise ValidationError(_("File is too large. Maximum size is %(mb)s MB.") % {"mb": MAX_FILE_MB})
+    max_mb = getattr(settings, "NOTE_MAX_UPLOAD_MB", 20)
+    if file.size > max_mb * 1024 * 1024:
+        raise ValidationError(_("File is too large. Maximum size is %(mb)s MB.") % {"mb": max_mb})
+
 
 
 def note_file_upload_to(instance, filename):
@@ -70,7 +80,7 @@ class Note(models.Model):
     file = models.FileField(
         storage=private_storage,
         upload_to=note_file_upload_to,
-        validators=[FileExtensionValidator(["pdf"]), validate_file_size],
+        validators=[FileExtensionValidator(["pdf"]), validate_file_size, validate_pdf_header],
     )
     preview = models.ImageField(
         storage=private_storage,
@@ -104,6 +114,9 @@ class Note(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+        ]
 
     def __str__(self):
         return f"{self.course_code} - {self.title}"
@@ -122,7 +135,7 @@ class Note(models.Model):
         return max(0, left.days)
     
 class NoteDownload(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='downloaded_notes')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='downloaded_notes')
     note = models.ForeignKey('Note', on_delete=models.CASCADE, related_name='downloads')
     downloaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -133,7 +146,7 @@ class NoteDownload(models.Model):
         return f"{self.user.username} downloaded {self.note.title}"
     
 class NoteRating(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_ratings')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='given_ratings')
     note = models.ForeignKey('Note', on_delete=models.CASCADE, related_name='ratings')
     rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     review = models.TextField(blank=True)

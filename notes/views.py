@@ -153,22 +153,29 @@ def review_action(request, pk):
     if not can_review(request.user, note):
         raise Http404
 
-    owner_name = note.owner.get_full_name() or note.owner.username
     action = request.POST.get("action")
-
-    if action == "approve":
-        paid = approve_note(note, reviewer=request.user)
-        if paid:
-            messages.success(request, f"Approved. {owner_name} earned 10 nuts.")
-        else:
-            messages.success(request, "Approved.")
-    elif action == "reject":
+    if action == "reject":
         reason = request.POST.get("reason", "").strip()
         if not reason:
             messages.error(request, "Please write a reason for rejecting the note.")
             return redirect("notes:review_detail", pk=pk)
-        reject_note(note, request.user, reason)
-        messages.info(request, f"Rejected. {owner_name} can see your reason.")
+
+    with transaction.atomic():
+        locked_note = Note.objects.select_for_update().get(pk=note.pk)
+        if locked_note.status not in (Note.Status.PENDING, Note.Status.UNVERIFIED):
+            messages.info(request, "This note was already decided by another reviewer.")
+            return redirect("notes:review_list")
+
+        owner_name = locked_note.owner.get_full_name() or locked_note.owner.username
+        if action == "approve":
+            paid = approve_note(locked_note, reviewer=request.user)
+            if paid:
+                messages.success(request, f"Approved. {owner_name} earned 10 nuts.")
+            else:
+                messages.success(request, "Approved.")
+        elif action == "reject":
+            reject_note(locked_note, request.user, reason)
+            messages.info(request, f"Rejected. {owner_name} can see your reason.")
 
     return redirect("notes:review_list")
 
@@ -177,12 +184,15 @@ def review_action(request, pk):
 def note_file(request, pk):
     note = get_object_or_404(Note, pk=pk)
     user = request.user
+    is_privileged = note.owner_id == user.id or user.is_superuser or can_review(user, note)
+    if note.status == Note.Status.REMOVED and not is_privileged:
+        raise Http404
     
     # Check if user has already downloaded/unlocked the note
     has_downloaded = NoteDownload.objects.filter(user=user, note=note).exists()
     
     # Allow access if owner, superuser, reviewer, OR has downloaded
-    if not (note.owner_id == user.id or user.is_superuser or can_review(user, note) or has_downloaded):
+    if not (is_privileged or has_downloaded):
         raise Http404
         
     return FileResponse(note.file.open("rb"), content_type="application/pdf")

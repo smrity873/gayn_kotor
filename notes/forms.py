@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 
 from accounts.forms import INPUT_CLASSES
 from accounts.models import User
@@ -27,7 +28,7 @@ class NoteForm(forms.ModelForm):
             field.widget.attrs["class"] = FILE_CLASSES if name == "file" else INPUT_CLASSES
 
         self.fields["file"].widget.attrs["accept"] = "application/pdf"
-        self.fields["file"].help_text = "PDF only, up to 20 MB."
+        self.fields["file"].help_text = f"PDF only, up to {getattr(settings, 'NOTE_MAX_UPLOAD_MB', 20)} MB."
 
         if user is not None and user.role == User.Role.LECTURER:
             self.fields["visibility"].choices = [
@@ -40,3 +41,11 @@ class NoteForm(forms.ModelForm):
 
     def clean_course_code(self):
         return self.cleaned_data["course_code"].strip().upper()
+
+    def clean_file(self):
+        file = self.cleaned_data.get("file")
+        if file:
+            from .models import validate_file_size, validate_pdf_header
+            validate_file_size(file)
+            validate_pdf_header(file)
+        return file
