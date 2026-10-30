@@ -3,6 +3,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+import os
+import uuid
+from core.storage import private_storage
 
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -17,6 +20,16 @@ MAX_FILE_MB = 50
 def validate_file_size(file):
     if file.size > MAX_FILE_MB * 1024 * 1024:
         raise ValidationError(_("File is too large. Maximum size is %(mb)s MB.") % {"mb": MAX_FILE_MB})
+
+
+def note_file_upload_to(instance, filename):
+    ext = os.path.splitext(filename)[1].lower() or ".pdf"
+    return f"notes/{uuid.uuid4()}{ext}"
+
+
+def note_preview_upload_to(instance, filename):
+    ext = os.path.splitext(filename)[1].lower() or ".jpg"
+    return f"previews/{uuid.uuid4()}{ext}"
 
 
 class Note(models.Model):
@@ -55,10 +68,15 @@ class Note(models.Model):
         default=Visibility.PUBLIC,
     )
     file = models.FileField(
-        upload_to="notes/%Y/%m/",
+        storage=private_storage,
+        upload_to=note_file_upload_to,
         validators=[FileExtensionValidator(["pdf"]), validate_file_size],
     )
-    preview = models.ImageField(upload_to="previews/%Y/%m/", blank=True)
+    preview = models.ImageField(
+        storage=private_storage,
+        upload_to=note_preview_upload_to,
+        blank=True,
+    )
     batch = models.ForeignKey(
         "campus.Batch",
         on_delete=models.SET_NULL,
