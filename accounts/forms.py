@@ -9,6 +9,7 @@ from django.contrib.auth.forms import (
     UserCreationForm,
 )
 from django.core.cache import cache
+from django.db.models import Q
 from django.urls import reverse
 
 from campus.models import Batch, BatchMembership
@@ -97,17 +98,22 @@ class SignUpForm(UserCreationForm):
 class LoginForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["username"].label = "Username"
+        self.fields["username"].label = "Username or Email"
         for field in self.fields.values():
             field.widget.attrs["class"] = INPUT_CLASSES
 
     def clean(self):
-        username = self.cleaned_data.get("username", "").strip()
+        login_input = self.cleaned_data.get("username", "").strip()
         password = self.cleaned_data.get("password")
 
-        if username and password:
+        if login_input and password:
+            matched_user = User.objects.filter(
+                Q(username__iexact=login_input) | Q(email__iexact=login_input)
+            ).first()
+            auth_username = matched_user.username if matched_user else login_input
+
             client_ip = get_client_ip(self.request)
-            throttle_key = f"login_failed_{username.lower()}_{client_ip}"
+            throttle_key = f"login_failed_{auth_username.lower()}_{client_ip}"
             failed_count = cache.get(throttle_key, 0)
             if failed_count >= 5:
                 raise forms.ValidationError(
@@ -115,13 +121,12 @@ class LoginForm(AuthenticationForm):
                 )
 
             self.user_cache = authenticate(
-                self.request, username=username, password=password
+                self.request, username=auth_username, password=password
             )
 
             if self.user_cache is None:
                 cache.set(throttle_key, failed_count + 1, timeout=15 * 60)
 
-                matched_user = User.objects.filter(username__iexact=username).first()
                 if matched_user and matched_user.check_password(password):
                     if matched_user.suspended_at or matched_user.suspension_reason:
                         raise forms.ValidationError(

@@ -133,7 +133,7 @@ if db_url:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': unquote(parsed_db.path.lstrip('/')),
+            'NAME': os.getenv('DB_NAME') or unquote(parsed_db.path.lstrip('/')),
             'USER': unquote(parsed_db.username or ''),
             'PASSWORD': unquote(parsed_db.password or ''),
             'HOST': parsed_db.hostname or 'localhost',
