@@ -1,5 +1,6 @@
 import uuid
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 
 from accounts.models import User
 from campus.models import Batch, BatchMembership, Department
@@ -37,6 +38,8 @@ def make_student(batch=None, cr=False, username=None, **kwargs):
     email = kwargs.pop("email", f"{username}@example.com")
     id_number = kwargs.pop("id_number", f"{100000000000000 + seq}")
     password = kwargs.pop("password", "TestPass123!")
+    kwargs.setdefault("email_verified_at", timezone.now())
+    kwargs.setdefault("is_email_verified", True)
 
     user = User.objects.create_user(
         username=username,
@@ -62,6 +65,8 @@ def make_lecturer(username=None, **kwargs):
     email = kwargs.pop("email", f"{username}@example.com")
     id_number = kwargs.pop("id_number", f"LEC-{seq:04d}")
     password = kwargs.pop("password", "TestPass123!")
+    kwargs.setdefault("email_verified_at", timezone.now())
+    kwargs.setdefault("is_email_verified", True)
 
     user = User.objects.create_user(
         username=username,
