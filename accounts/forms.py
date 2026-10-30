@@ -1,6 +1,8 @@
 from django import forms
 from django.conf import settings
+from django.contrib.auth import authenticate
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.core.cache import cache
 from django.urls import reverse
 
 from campus.models import Batch, BatchMembership
@@ -14,6 +16,15 @@ INPUT_CLASSES = (
     "focus:ring-2 focus:ring-green-500/30 "
     "dark:border-green-800 dark:bg-canvas-dark dark:text-green-50"
 )
+
+
+def get_client_ip(request):
+    if not request:
+        return "127.0.0.1"
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "127.0.0.1")
 
 
 class SignUpForm(UserCreationForm):
@@ -83,3 +94,43 @@ class LoginForm(AuthenticationForm):
         self.fields["username"].label = "Username"
         for field in self.fields.values():
             field.widget.attrs["class"] = INPUT_CLASSES
+
+    def clean(self):
+        username = self.cleaned_data.get("username", "").strip()
+        password = self.cleaned_data.get("password")
+
+        if username and password:
+            client_ip = get_client_ip(self.request)
+            throttle_key = f"login_failed_{username.lower()}_{client_ip}"
+            failed_count = cache.get(throttle_key, 0)
+            if failed_count >= 5:
+                raise forms.ValidationError(
+                    "Too many failed login attempts. Please try again in 15 minutes."
+                )
+
+            self.user_cache = authenticate(
+                self.request, username=username, password=password
+            )
+
+            if self.user_cache is None:
+                cache.set(throttle_key, failed_count + 1, timeout=15 * 60)
+
+                matched_user = User.objects.filter(username__iexact=username).first()
+                if matched_user and matched_user.check_password(password):
+                    if matched_user.suspended_at or matched_user.suspension_reason:
+                        raise forms.ValidationError(
+                            f"Your account has been suspended. Reason: {matched_user.suspension_reason or 'No reason provided.'}"
+                        )
+                    if not matched_user.is_active:
+                        if matched_user.role == User.Role.LECTURER:
+                            raise forms.ValidationError(
+                                "Your lecturer account is pending administrator approval."
+                            )
+                        raise forms.ValidationError("This account is inactive.")
+
+                raise self.get_invalid_login_error()
+            else:
+                self.confirm_login_allowed(self.user_cache)
+                cache.delete(throttle_key)
+
+        return self.cleaned_data
