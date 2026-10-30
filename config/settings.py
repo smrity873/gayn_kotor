@@ -231,6 +231,8 @@ LOGOUT_REDIRECT_URL = "core:home"
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
 
+PRIVATE_MEDIA_ROOT = Path(os.getenv("PRIVATE_MEDIA_ROOT", str(BASE_DIR / "private_media")))
+
 NOTE_ESCALATE_DAYS = int(os.getenv("NOTE_ESCALATE_DAYS", "3"))
 NOTE_AUTOPUBLISH_DAYS = int(os.getenv("NOTE_AUTOPUBLISH_DAYS", "7"))
 

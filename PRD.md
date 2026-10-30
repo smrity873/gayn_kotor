@@ -219,6 +219,13 @@ Write tests for existing behaviour: `add_entry` (insufficient funds, atomicity),
 
 1.8 **Login throttle.** Cache-based: 5 failed attempts per username+IP per 15 minutes, generic error message.
 
+1.9 **Object Storage.** Add a bucket to my app using Neon Object Storage and test it with a real file upload:
+
+    1. Install the Neon CLI with `npm install -g neon@latest`. If that fails, use `npx neon@latest` in place of `neon`. If a neon command opens a browser sign-in, tell me to finish it there. If that times out or fails, ask me to run `neon login`, then retry.
+    2. Run `neon init -y --project-id wild-rain-49296367 --branch production --services postgres,object-storage` to link this project and install Neon's agent tooling.
+    3. Run `neon config add bucket uploads`, then `neon deploy` to create the bucket and pull its env vars into `.env.local` (or `.env` if it exists).
+    4. Using the neon-object-storage skill (https://neon.com/docs/ai/skills/neon-object-storage/SKILL.md), upload a small text file to the bucket with the Files SDK, then prove it works: list the bucket, read the file back, and show me its contents. Don't print secrets.
+
 **Acceptance**
 - Signup gives 0 credits; verification gives exactly 30; clicking the link twice gives 30 total.
 - Expired or tampered token is rejected.
