@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
+from accounts.decorators import verified_required
 from accounts.models import User
 from campus.models import Department
 from credits.models import CreditLedger
@@ -97,6 +98,7 @@ def note_preview(request, pk):
 
 
 @login_required
+@verified_required
 def upload(request):
     user = request.user
     allowed, hint = can_upload(user)
@@ -237,6 +239,7 @@ def note_detail(request, pk):
 
 @login_required
 @require_POST
+@verified_required
 def note_download(request, pk):
     note = get_object_or_404(Note, pk=pk)
     user = request.user
@@ -270,6 +273,7 @@ def note_download(request, pk):
 
 @login_required
 @require_POST
+@verified_required
 def note_rate(request, pk):
     note = get_object_or_404(Note, pk=pk)
     user = request.user
