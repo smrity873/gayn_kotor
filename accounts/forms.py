@@ -1,11 +1,9 @@
 from django import forms
+from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from credits.models import CreditLedger
-from credits.services import add_entry
-
-from campus.models import Batch, BatchMembership
 from django.urls import reverse
 
+from campus.models import Batch, BatchMembership
 from notifications.services import notify
 
 from .models import User
@@ -44,6 +42,17 @@ class SignUpForm(UserCreationForm):
         for field in self.fields.values():
             field.widget.attrs["class"] = INPUT_CLASSES
 
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "").strip().lower()
+        allowed_domains = getattr(settings, "ALLOWED_EMAIL_DOMAINS", [])
+        if allowed_domains:
+            domain = email.split("@")[-1] if "@" in email else ""
+            if domain not in allowed_domains:
+                raise forms.ValidationError(
+                    f"Registration is restricted to the following email domains: {', '.join(allowed_domains)}"
+                )
+        return email
+
     def clean(self):
         cleaned = super().clean()
         if cleaned.get("role") == User.Role.STUDENT and not cleaned.get("batch"):
@@ -56,7 +65,6 @@ class SignUpForm(UserCreationForm):
             user.is_active = False
         if commit:
             user.save()
-            add_entry(user, 30, CreditLedger.Reason.SIGNUP_BONUS, "Welcome bonus")
             batch = self.cleaned_data.get("batch")
             if user.role == User.Role.STUDENT and batch:
                 BatchMembership.objects.create(user=user, batch=batch)
