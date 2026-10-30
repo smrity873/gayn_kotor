@@ -91,9 +91,11 @@ def reject_note(note, reviewer, reason):
     )
 
 
-def publish_overdue_notes():
+def publish_overdue_notes(now=None):
     """Notes nobody reviewed in time go live as 'unverified' (no reward yet)."""
-    cutoff = timezone.now() - timedelta(days=settings.NOTE_AUTOPUBLISH_DAYS)
+    if now is None:
+        now = timezone.now()
+    cutoff = now - timedelta(days=settings.NOTE_AUTOPUBLISH_DAYS)
     notes = list(
         Note.objects.filter(status=Note.Status.PENDING, created_at__lte=cutoff).select_related("owner")
     )
@@ -101,7 +103,7 @@ def publish_overdue_notes():
         return 0
 
     Note.objects.filter(id__in=[n.id for n in notes]).update(
-        status=Note.Status.UNVERIFIED, published_at=timezone.now()
+        status=Note.Status.UNVERIFIED, published_at=now
     )
     for n in notes:
         notify(
@@ -110,6 +112,113 @@ def publish_overdue_notes():
             reverse("notes:detail", args=[n.pk]),
         )
     return len(notes)
+
+
+def process_review_deadlines(now=None):
+    """Evaluates CR reminders, teacher escalations, and auto-publishing for pending notes."""
+    if now is None:
+        now = timezone.now()
+
+    cr_reminder_days = getattr(settings, "NOTE_CR_REMINDER_DAYS", 2)
+    escalate_days = getattr(settings, "NOTE_ESCALATE_DAYS", 3)
+    autopublish_days = getattr(settings, "NOTE_AUTOPUBLISH_DAYS", 7)
+
+    pending_notes = Note.objects.filter(
+        status=Note.Status.PENDING
+    ).select_related("owner", "batch", "batch__class_teacher")
+
+    updated_count = 0
+
+    for note in pending_notes:
+        age = now - note.created_at
+        batch = note.batch
+
+        # 1. Day 7+: Auto-publish as UNVERIFIED
+        if age >= timedelta(days=autopublish_days):
+            note.status = Note.Status.UNVERIFIED
+            note.published_at = now
+            note.save(update_fields=["status", "published_at"])
+            notify(
+                note.owner,
+                f'Your note "{note.title}" is now public (not yet verified).',
+                reverse("notes:detail", args=[note.pk]),
+            )
+            updated_count += 1
+            continue
+
+        if not batch:
+            continue
+
+        crs = list(User.objects.filter(
+            membership__batch=batch,
+            membership__is_cr=True,
+            membership__status=BatchMembership.Status.APPROVED,
+        ).exclude(pk=note.owner_id))
+
+        has_cr = len(crs) > 0
+        teacher = batch.class_teacher
+        has_teacher = teacher is not None and teacher.pk != note.owner_id
+
+        # Batch with no CR goes straight to class teacher
+        is_escalated = (
+            age >= timedelta(days=escalate_days)
+            or (not has_cr and age >= timedelta(days=cr_reminder_days))
+        )
+
+        if is_escalated:
+            if not note.escalated_at:
+                note.escalated_at = now
+                note.last_reminder_at = now
+                fields_to_save = ["escalated_at", "last_reminder_at"]
+                if not note.cr_reminded_at:
+                    note.cr_reminded_at = now
+                    fields_to_save.append("cr_reminded_at")
+                note.save(update_fields=fields_to_save)
+
+                if has_teacher:
+                    notify(
+                        teacher,
+                        f'Escalated review: "{note.title}" in {batch.name} requires your review.',
+                        reverse("notes:review_detail", args=[note.pk]),
+                    )
+                updated_count += 1
+            else:
+                # Then one reminder per day (last_reminder_at)
+                if note.last_reminder_at and (now - note.last_reminder_at >= timedelta(days=1)):
+                    note.last_reminder_at = now
+                    note.save(update_fields=["last_reminder_at"])
+                    if has_teacher:
+                        notify(
+                            teacher,
+                            f'Reminder: "{note.title}" in {batch.name} is waiting for your review.',
+                            reverse("notes:review_detail", args=[note.pk]),
+                        )
+                    updated_count += 1
+
+        elif age >= timedelta(days=cr_reminder_days):
+            if not note.cr_reminded_at:
+                note.cr_reminded_at = now
+                note.save(update_fields=["cr_reminded_at"])
+
+                if crs:
+                    notify_many(
+                        crs,
+                        f'Review reminder: "{note.title}" is waiting for review.',
+                        reverse("notes:review_detail", args=[note.pk]),
+                    )
+
+                owner_is_cr = BatchMembership.objects.filter(
+                    user=note.owner, batch=batch, is_cr=True, status=BatchMembership.Status.APPROVED
+                ).exists()
+                if owner_is_cr and has_teacher:
+                    notify(
+                        teacher,
+                        f'Review notification: "{note.title}" was uploaded by CR {note.owner.get_full_name() or note.owner.username}.',
+                        reverse("notes:review_detail", args=[note.pk]),
+                    )
+                updated_count += 1
+
+    return updated_count
 
 
 def visible_notes(user):
