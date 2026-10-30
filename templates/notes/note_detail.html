@@ -150,10 +150,16 @@
 
                 {% if can_afford is False %}
                 <div class="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
-                    You do not have enough nuts yet. Share your own note and earn 10 nuts.
-                    <a href="{% url 'credits:hollow' %}" class="font-semibold underline">Open my hollow</a>
+                    <p>You do not have enough nuts yet. Share your own note, or buy nuts to unlock immediately.</p>
+                    <div class="mt-2 flex items-center gap-3 text-xs">
+                        <a href="{% url 'credits:hollow' %}" class="font-semibold underline">Open my hollow</a>
+                        <span class="text-amber-900/40 dark:text-amber-100/40">·</span>
+                        <a href="{% url 'payments:buy_credits' %}" class="font-bold underline text-amber-800 dark:text-amber-300">Buy nuts</a>
+                    </div>
                 </div>
-                <button type="button" disabled class="mt-4 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-gray-300 py-3 font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-400">Not enough nuts</button>
+                <a href="{% url 'payments:buy_credits' %}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber-500 py-3 font-semibold text-white shadow-md shadow-amber-500/30 transition hover:bg-amber-600">
+                    Buy nuts to unlock
+                </a>
                 {% else %}
                 <form method="post" action="{% url 'notes:download' note.pk %}" class="mt-4">
                     {% csrf_token %}
