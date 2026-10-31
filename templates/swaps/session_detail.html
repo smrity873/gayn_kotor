@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Session #{{ session.id }}: {{ session.skill_name }} - Gyan Kotor{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+    <div class="mb-4">
+        <a href="{% url 'swaps:list' %}?tab=my_sessions" class="inline-flex items-center text-xs font-semibold text-green-700 hover:underline dark:text-green-300">
+            &larr; Back to My Sessions
+        </a>
+    </div>
+
+    <!-- Main Card -->
+    <div class="rounded-3xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark sm:p-8">
+        <!-- Header -->
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-green-100 pb-6 dark:border-green-900/60">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider
+                        {% if session.status == 'scheduled' %}bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200
+                        {% elif session.status == 'completed' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200
+                        {% elif session.status == 'accepted' %}bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200
+                        {% elif session.status == 'disputed' or session.status == 'no_show' %}bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200
+                        {% else %}bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300{% endif %}">
+                        {{ session.get_status_display }}
+                    </span>
+                    {% if session.deposit_held %}
+                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">
+                        🌰 {{ deposit }} nuts deposit held
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="mt-3 text-2xl font-black text-green-950 dark:text-green-50 sm:text-3xl">
+                    {{ session.skill_name }}
+                </h1>
+                <p class="mt-1 text-xs text-green-900/70 dark:text-green-200/70">
+                    Session #{{ session.id }} · Created {{ session.created_at|date:"d M Y, h:i A" }}
+                </p>
+            </div>
+
+            <!-- Participants Pill -->
+            <div class="flex flex-col gap-1 rounded-2xl border border-green-200/60 bg-green-50/50 p-4 text-xs dark:border-green-800/60 dark:bg-green-950/40">
+                <div class="flex items-center justify-between gap-4">
+                    <span class="font-bold text-green-900 dark:text-green-200">Teacher:</span>
+                    <span class="font-medium text-green-950 dark:text-green-50">
+                        {{ session.teacher.get_full_name|default:session.teacher.username }}
+                        {% if is_teacher %}<span class="text-emerald-600 font-bold">(You)</span>{% endif %}
+                    </span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <span class="font-bold text-green-900 dark:text-green-200">Learner:</span>
+                    <span class="font-medium text-green-950 dark:text-green-50">
+                        {{ session.learner.get_full_name|default:session.learner.username }}
+                        {% if is_learner %}<span class="text-sky-600 font-bold">(You)</span>{% endif %}
+                    </span>
+                </div>
+                {% if session.proposed_time %}
+                <div class="flex items-center justify-between gap-4 pt-1 border-t border-green-200/40 dark:border-green-800/40">
+                    <span class="font-bold text-green-900 dark:text-green-200">Time:</span>
+                    <span class="font-semibold text-emerald-700 dark:text-emerald-300">
+                        {{ session.proposed_time|date:"d M Y, h:i A" }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Meeting Link Section (PRD 5.5) -->
+        {% if session.status in 'scheduled,accepted,completed' %}
+        <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-5 dark:border-blue-900/50 dark:bg-blue-950/30">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                    <h2 class="text-sm font-bold text-blue-950 dark:text-blue-100">Meeting Link</h2>
+                </div>
+                <span class="text-[11px] text-blue-800/70 dark:text-blue-300/70">
+                    Google Meet, Zoom, or Teams
+                </span>
+            </div>
+
+            {% if session.meeting_link %}
+            <div class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-3 shadow-sm dark:bg-neutral-800">
+                <a href="{{ session.meeting_link }}" target="_blank" rel="noopener noreferrer" class="truncate text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400">
+                    🔗 {{ session.meeting_link }}
+                </a>
+                <a href="{{ session.meeting_link }}" target="_blank" rel="noopener noreferrer" class="shrink-0 rounded-full bg-blue-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700">
+                    Join Call &rarr;
+                </a>
+            </div>
+            {% else %}
+            <p class="mt-2 text-xs text-blue-900/70 dark:text-blue-200/70">
+                {% if is_teacher %}Please provide the video meeting link below.{% else %}Teacher has not added the meeting link yet.{% endif %}
+            </p>
+            {% endif %}
+
+            {% if is_teacher and session.status != 'completed' and session.status != 'cancelled' %}
+            <form method="post" action="{% url 'swaps:session_set_link' session.id %}" class="mt-4 flex flex-col gap-2 sm:flex-row">
+                {% csrf_token %}
+                <input type="url" name="meeting_link" value="{{ session.meeting_link }}" placeholder="https://meet.google.com/xxx-xxxx-xxx" required class="flex-1 rounded-xl border border-blue-200 bg-white px-4 py-2 text-xs text-neutral-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-blue-800 dark:bg-neutral-800 dark:text-neutral-50">
+                <button type="submit" class="rounded-full bg-blue-600 px-5 py-2 text-xs font-bold text-white transition hover:bg-blue-700">
+                    {% if session.meeting_link %}Update Link{% else %}Save Link{% endif %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- State Machine Action Sections -->
+
+        <!-- 1. REQUESTED State -->
+        {% if session.status == 'requested' %}
+        <div class="mt-6 rounded-2xl border border-amber-200/60 bg-amber-50/40 p-5 dark:border-amber-900/50 dark:bg-amber-950/20">
+            <h2 class="text-sm font-bold text-amber-950 dark:text-amber-100">Pending Acceptance</h2>
+
+            {% if is_teacher %}
+            <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/80">
+                Accept this request and propose a meeting date and time:
+            </p>
+            <form method="post" action="{% url 'swaps:session_accept' session.id %}" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                {% csrf_token %}
+                <input type="datetime-local" name="proposed_time" value="{{ session.proposed_time|date:'Y-m-d\TH:i' }}" required class="rounded-xl border border-amber-300 bg-white px-4 py-2 text-xs text-neutral-900 outline-none focus:border-amber-500 dark:border-amber-700 dark:bg-neutral-800 dark:text-neutral-50">
+                <div class="flex items-center gap-2">
+                    <button type="submit" class="rounded-full bg-emerald-600 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-sm hover:bg-emerald-700">
+                        Accept & Propose Time
+                    </button>
+                    <button type="submit" formaction="{% url 'swaps:session_decline' session.id %}" formmethod="post" class="rounded-full border border-red-300 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400">
+                        Decline
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/80">
+                Waiting for the teacher to accept the request and propose a meeting time.
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- 2. ACCEPTED State -->
+        {% if session.status == 'accepted' %}
+        <div class="mt-6 rounded-2xl border border-amber-200/60 bg-amber-50/40 p-5 dark:border-amber-900/50 dark:bg-amber-950/20">
+            <h2 class="text-sm font-bold text-amber-950 dark:text-amber-100">
+                Proposed Time: {{ session.proposed_time|date:"d M Y, h:i A" }}
+            </h2>
+
+            {% if is_learner %}
+            <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/80">
+                Confirm this time to schedule the session. A deposit of <strong>{{ deposit }} nuts</strong> will be held from both accounts.
+            </p>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                {% if has_sufficient_credits %}
+                <form method="post" action="{% url 'swaps:session_confirm' session.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="rounded-full bg-emerald-600 px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-emerald-600/30 transition hover:bg-emerald-700">
+                        Confirm Time & Hold {{ deposit }} Nuts
+                    </button>
+                </form>
+                {% else %}
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-red-600 dark:text-red-400">
+                        Insufficient nuts (You have {{ user_balance }} / {{ deposit }} needed).
+                    </span>
+                    <a href="{% url 'payments:buy_credits' %}" class="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-bold text-stone-900 hover:bg-amber-400">
+                        Buy nuts &rarr;
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/80">
+                Waiting for learner to confirm the time and lock deposits.
+            </p>
+            {% endif %}
+
+            <!-- Propose Alternative Time -->
+            <details class="mt-5 border-t border-amber-200/40 pt-3 dark:border-amber-900/40">
+                <summary class="cursor-pointer text-xs font-semibold text-amber-800 hover:underline dark:text-amber-300">
+                    Propose a different meeting time
+                </summary>
+                <form method="post" action="{% url 'swaps:session_propose_time' session.id %}" class="mt-3 flex flex-wrap items-center gap-2">
+                    {% csrf_token %}
+                    <input type="datetime-local" name="proposed_time" required class="rounded-xl border border-amber-300 bg-white px-3 py-1.5 text-xs text-neutral-900 outline-none dark:border-amber-700 dark:bg-neutral-800 dark:text-neutral-50">
+                    <button type="submit" class="rounded-full bg-neutral-800 px-4 py-1.5 text-xs font-bold text-white hover:bg-neutral-700 dark:bg-neutral-200 dark:text-neutral-900">
+                        Propose New Time
+                    </button>
+                </form>
+            </details>
+        </div>
+        {% endif %}
+
+        <!-- 3. SCHEDULED State (Action buttons & Outcome reporting) -->
+        {% if session.status == 'scheduled' %}
+        <div class="mt-6 space-y-4">
+            <!-- Outcome reporting panel -->
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50/30 p-5 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                <h2 class="text-sm font-bold text-emerald-950 dark:text-emerald-100">Session Outcome</h2>
+
+                {% if can_report_outcome %}
+                    {% if is_teacher and session.teacher_outcome %}
+                    <p class="mt-2 text-xs text-emerald-800 dark:text-emerald-200">
+                        You reported: <strong>{{ session.get_teacher_outcome_display }}</strong> on {{ session.teacher_outcome_at|date:"d M, h:i A" }}.
+                        {% if not session.learner_outcome %}Waiting for the learner to report or 24h dispute window.{% endif %}
+                    </p>
+                    {% elif is_learner and session.learner_outcome %}
+                    <p class="mt-2 text-xs text-emerald-800 dark:text-emerald-200">
+                        You reported: <strong>{{ session.get_learner_outcome_display }}</strong> on {{ session.learner_outcome_at|date:"d M, h:i A" }}.
+                        {% if not session.teacher_outcome %}Waiting for the teacher to report or 24h dispute window.{% endif %}
+                    </p>
+                    {% else %}
+                    <p class="mt-1 text-xs text-emerald-900/70 dark:text-emerald-200/70">
+                        The session time has arrived. Please report the outcome of your session:
+                    </p>
+                    <form method="post" action="{% url 'swaps:session_report_outcome' session.id %}" class="mt-4 flex flex-wrap items-center gap-3">
+                        {% csrf_token %}
+                        <button type="submit" name="outcome" value="completed" class="rounded-full bg-emerald-600 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-sm hover:bg-emerald-700">
+                            ✓ Mark as Completed
+                        </button>
+                        <button type="submit" name="outcome" value="no_show" class="rounded-full border border-red-300 bg-white px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:bg-neutral-800 dark:text-red-400" onclick="return confirm('Are you sure you want to report the other party as a no-show?')">
+                            ⚠ Report Other Party as No-show
+                        </button>
+                    </form>
+                    {% endif %}
+                {% else %}
+                <p class="mt-1 text-xs text-emerald-900/70 dark:text-emerald-200/70">
+                    Outcome reporting unlocks once the session starts at {{ session.proposed_time|date:"d M Y, h:i A" }}.
+                </p>
+                {% endif %}
+            </div>
+
+            <!-- Cancellation box -->
+            <div class="rounded-2xl border border-neutral-200 bg-neutral-50/50 p-4 dark:border-neutral-800 dark:bg-neutral-900/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <p class="text-xs font-bold text-neutral-800 dark:text-neutral-200">Cancellation Policy</p>
+                    <p class="text-[11px] text-neutral-600 dark:text-neutral-400">
+                        {% if is_free_cancel %}
+                        Free cancellation is available until {{ free_cancel_cutoff|date:"d M Y, h:i A" }} (both deposits returned).
+                        {% else %}
+                        <span class="text-red-500 font-semibold">Late cancellation:</span> Cancellations made less than 24h before start forfeit the deposit to the other party.
+                        {% endif %}
+                    </p>
+                </div>
+                <form method="post" action="{% url 'swaps:session_cancel' session.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-200/60 dark:border-neutral-700 dark:text-neutral-300" onclick="return confirm('Cancel this session? {% if not is_free_cancel %}Notice: You will forfeit your deposit to the other party.{% endif %}')">
+                        Cancel session
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 4. COMPLETED / RATING State (PRD 5.2 & 5.8) -->
+        {% if session.status in 'completed,no_show' %}
+        <div class="mt-6 rounded-2xl border border-green-200 bg-green-50/30 p-5 dark:border-green-900/50 dark:bg-green-950/20">
+            <h2 class="text-sm font-bold text-green-950 dark:text-green-50">Session Rating & Feedback</h2>
+
+            {% if existing_rating %}
+            <div class="mt-3 rounded-xl bg-white p-4 shadow-sm dark:bg-neutral-800">
+                <p class="text-xs font-semibold text-green-900 dark:text-green-200">
+                    Your Rating: <span class="text-amber-500 font-bold">{{ existing_rating.rating }} ★</span>
+                </p>
+                {% if existing_rating.comment %}
+                <p class="mt-1 text-xs text-neutral-600 dark:text-neutral-300">
+                    "{{ existing_rating.comment }}"
+                </p>
+                {% endif %}
+            </div>
+            {% else %}
+            <form method="post" action="{% url 'swaps:session_rate' session.id %}" class="mt-3 space-y-3">
+                {% csrf_token %}
+                <div class="flex items-center gap-3">
+                    <label for="id_rating" class="text-xs font-semibold text-green-950 dark:text-green-50">Score:</label>
+                    <select id="id_rating" name="rating" class="rounded-xl border border-green-300 bg-white px-3 py-1.5 text-xs text-neutral-900 dark:border-green-700 dark:bg-neutral-800 dark:text-neutral-50">
+                        <option value="5">5 ★ - Excellent</option>
+                        <option value="4">4 ★ - Great</option>
+                        <option value="3">3 ★ - Good</option>
+                        <option value="2">2 ★ - Fair</option>
+                        <option value="1">1 ★ - Poor</option>
+                    </select>
+                </div>
+                <div>
+                    <textarea name="comment" rows="2" placeholder="Leave constructive feedback for your peer..." class="w-full rounded-xl border border-green-200 bg-white p-3 text-xs text-neutral-900 outline-none focus:border-green-500 dark:border-green-800 dark:bg-neutral-800 dark:text-neutral-50"></textarea>
+                </div>
+                <button type="submit" class="rounded-full bg-green-600 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-sm hover:bg-green-700">
+                    Submit Rating
+                </button>
+            </form>
+            {% endif %}
+
+            {% if other_user_rating %}
+            <div class="mt-3 border-t border-green-100 pt-3 dark:border-green-900/60">
+                <p class="text-xs font-semibold text-green-900 dark:text-green-200">
+                    Feedback from {% if is_teacher %}{{ session.learner.username }}{% else %}{{ session.teacher.username }}{% endif %}:
+                    <span class="text-amber-500 font-bold">{{ other_user_rating.rating }} ★</span>
+                </p>
+                {% if other_user_rating.comment %}
+                <p class="mt-1 text-xs text-neutral-600 dark:text-neutral-300">
+                    "{{ other_user_rating.comment }}"
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
