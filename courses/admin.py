@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, CoursePurchase, InstructorWallet, SkillSwap
+from .models import Course, CoursePurchase, InstructorWallet
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
@@ -17,9 +17,3 @@ class CoursePurchaseAdmin(admin.ModelAdmin):
 class InstructorWalletAdmin(admin.ModelAdmin):
     list_display = ('instructor', 'balance', 'total_earned')
     search_fields = ('instructor__username',)
-
-@admin.register(SkillSwap)
-class SkillSwapAdmin(admin.ModelAdmin):
-    list_display = ('user', 'offering_skill', 'seeking_skill', 'is_active')
-    list_filter = ('is_active',)
-    search_fields = ('user__username', 'offering_skill', 'seeking_skill')

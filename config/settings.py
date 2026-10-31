@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'notifications',
     'courses',
     'payments',
+    'swaps',
 ]
 
 MIDDLEWARE = [
@@ -78,7 +79,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-        'django.middleware.locale.LocaleMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -257,3 +258,15 @@ CREDIT_TOPUP_MIN = int(os.getenv("CREDIT_TOPUP_MIN", "10"))
 CREDIT_TOPUP_MAX = int(os.getenv("CREDIT_TOPUP_MAX", "5000"))
 PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "sandbox")
 SANDBOX_ALLOWED = os.getenv("SANDBOX_ALLOWED", "True").lower() in ("true", "1", "yes")
+
+# Skill Swap (Phase 5)
+SWAP_DEPOSIT = int(os.getenv("SWAP_DEPOSIT", "10"))
+SWAP_FREE_CANCEL_HOURS = int(os.getenv("SWAP_FREE_CANCEL_HOURS", "24"))
+SWAP_DISPUTE_HOURS = int(os.getenv("SWAP_DISPUTE_HOURS", "24"))
+SWAP_AUTO_RESOLVE_HOURS = int(os.getenv("SWAP_AUTO_RESOLVE_HOURS", "72"))
+SWAP_DEFAULT_DURATION_MIN = int(os.getenv("SWAP_DEFAULT_DURATION_MIN", "60"))
+SWAP_ALLOWED_LINK_DOMAINS = [
+    d.strip().lower()
+    for d in os.getenv("SWAP_ALLOWED_LINK_DOMAINS", "meet.google.com, zoom.us, teams.microsoft.com").split(",")
+    if d.strip()
+]

@@ -32,14 +32,3 @@ class InstructorWallet(models.Model):
 
     def __str__(self):
         return f"{self.instructor.username} Wallet"
-
-class SkillSwap(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='skill_swaps')
-    offering_skill = models.CharField(max_length=100, help_text="Skill to teach")
-    seeking_skill = models.CharField(max_length=100, help_text="Skill to learn")
-    description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.username}: {self.offering_skill} to {self.seeking_skill}"
