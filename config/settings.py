@@ -270,3 +270,6 @@ SWAP_ALLOWED_LINK_DOMAINS = [
     for d in os.getenv("SWAP_ALLOWED_LINK_DOMAINS", "meet.google.com, zoom.us, teams.microsoft.com").split(",")
     if d.strip()
 ]
+
+# Video Courses (Phase 7 flag, gated in Phase 6)
+ENABLE_VIDEO_COURSES = os.getenv("ENABLE_VIDEO_COURSES", "True").lower() in ("true", "1", "yes")
