@@ -81,3 +81,4 @@ class SessionRatingForm(forms.ModelForm):
                 "placeholder": _("Optional feedback on this swap session..."),
             }),
         }
+

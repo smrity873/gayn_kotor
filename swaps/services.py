@@ -659,6 +659,7 @@ def resolve_all_swaps():
 @transaction.atomic
 def rate_session(session, user, rating, comment=""):
     """Submits a rating (1-5) for a completed session. Ratings give no credits."""
+    session.refresh_from_db()
     if user.id not in (session.teacher_id, session.learner_id):
         raise PermissionDenied(_("Only participants can rate this session."))
 
@@ -682,3 +683,4 @@ def rate_session(session, user, rating, comment=""):
         reverse("swaps:session_detail", args=[session.id]),
     )
     return rating_obj
+

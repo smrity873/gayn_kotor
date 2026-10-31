@@ -20,3 +20,4 @@ urlpatterns = [
     path("session/<int:pk>/report-outcome/", views.session_report_outcome, name="session_report_outcome"),
     path("session/<int:pk>/rate/", views.session_rate, name="session_rate"),
 ]
+
