@@ -288,7 +288,9 @@ def session_accept(request, pk):
     try:
         accept_and_propose_time(session, request.user, proposed_time)
         messages.success(request, _("Session accepted and meeting time proposed!"))
-    except (ValidationError, PermissionDenied) as e:
+    except PermissionDenied:
+        raise
+    except ValidationError as e:
         msg = e.message if hasattr(e, "message") else str(e)
         messages.error(request, msg)
 
@@ -305,7 +307,9 @@ def session_decline(request, pk):
     try:
         decline_session(session, request.user)
         messages.info(request, _("Session request declined."))
-    except (ValidationError, PermissionDenied) as e:
+    except PermissionDenied:
+        raise
+    except ValidationError as e:
         msg = e.message if hasattr(e, "message") else str(e)
         messages.error(request, msg)
 
@@ -325,7 +329,9 @@ def session_propose_time(request, pk):
     try:
         propose_new_time(session, request.user, proposed_time)
         messages.success(request, _("New meeting time proposed."))
-    except (ValidationError, PermissionDenied) as e:
+    except PermissionDenied:
+        raise
+    except ValidationError as e:
         msg = e.message if hasattr(e, "message") else str(e)
         messages.error(request, msg)
 
@@ -349,7 +355,9 @@ def session_confirm(request, pk):
             _(f"{e.user.username} does not have enough credits ({e.current}/{e.required} nuts). "
               f"Please top up at <a href='{buy_url}' class='underline font-bold'>Buy nuts</a>.")
         )
-    except (ValidationError, PermissionDenied) as e:
+    except PermissionDenied:
+        raise
+    except ValidationError as e:
         msg = e.message if hasattr(e, "message") else str(e)
         messages.error(request, msg)
 
@@ -368,7 +376,9 @@ def session_set_link(request, pk):
     try:
         set_meeting_link(session, request.user, link)
         messages.success(request, _("Meeting link updated successfully."))
-    except (ValidationError, PermissionDenied) as e:
+    except PermissionDenied:
+        raise
+    except ValidationError as e:
         msg = e.message if hasattr(e, "message") else str(e)
         messages.error(request, msg)
 
@@ -385,7 +395,9 @@ def session_cancel(request, pk):
     try:
         cancel_session(session, request.user)
         messages.info(request, _("Session cancelled."))
-    except (ValidationError, PermissionDenied) as e:
+    except PermissionDenied:
+        raise
+    except ValidationError as e:
         msg = e.message if hasattr(e, "message") else str(e)
         messages.error(request, msg)
 
@@ -404,7 +416,9 @@ def session_report_outcome(request, pk):
     try:
         report_outcome(session, request.user, outcome)
         messages.success(request, _("Session outcome reported successfully."))
-    except (ValidationError, PermissionDenied) as e:
+    except PermissionDenied:
+        raise
+    except ValidationError as e:
         msg = e.message if hasattr(e, "message") else str(e)
         messages.error(request, msg)
 
@@ -424,7 +438,9 @@ def session_rate(request, pk):
     try:
         rate_session(session, request.user, rating, comment)
         messages.success(request, _("Thank you for your rating!"))
-    except (ValidationError, PermissionDenied) as e:
+    except PermissionDenied:
+        raise
+    except ValidationError as e:
         msg = e.message if hasattr(e, "message") else str(e)
         messages.error(request, msg)
 

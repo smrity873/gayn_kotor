@@ -128,6 +128,7 @@ class SwapDepositStateMachineTests(TestCase):
         self.session = request_session(self.post, self.learner)
         self.future_time = timezone.now() + timedelta(days=2)
         accept_and_propose_time(self.session, self.teacher, self.future_time)
+        self.session.refresh_from_db()
 
     def test_concurrent_confirmations_hold_deposits_only_once(self):
         """Acceptance test: Concurrent attempts to confirm one session hold deposits only once."""
@@ -157,7 +158,7 @@ class SwapDepositStateMachineTests(TestCase):
         """Acceptance test: Path 1 - both report completed -> both deposits returned."""
         confirm_time(self.session, self.learner)
         self.session.proposed_time = timezone.now() - timedelta(hours=2)
-        self.session.save()
+        self.session.save(update_fields=["proposed_time"])
 
         # Both report completed
         report_outcome(self.session, self.teacher, SwapSession.Outcome.COMPLETED)
@@ -176,7 +177,7 @@ class SwapDepositStateMachineTests(TestCase):
         """Acceptance test: Path 2 - cancellation >= 24h before start -> both returned."""
         confirm_time(self.session, self.learner)
         self.session.proposed_time = timezone.now() + timedelta(hours=48)
-        self.session.save()
+        self.session.save(update_fields=["proposed_time"])
 
         cancel_session(self.session, self.learner)
 
@@ -195,7 +196,7 @@ class SwapDepositStateMachineTests(TestCase):
         confirm_time(self.session, self.learner)
         # Schedule 2 hours in future (late)
         self.session.proposed_time = timezone.now() + timedelta(hours=2)
-        self.session.save()
+        self.session.save(update_fields=["proposed_time"])
 
         # Learner cancels late
         cancel_session(self.session, self.learner)
@@ -215,7 +216,7 @@ class SwapDepositStateMachineTests(TestCase):
         """Acceptance test: Path 4 - one says completed, other says no_show -> DISPUTED, both returned."""
         confirm_time(self.session, self.learner)
         self.session.proposed_time = timezone.now() - timedelta(hours=2)
-        self.session.save()
+        self.session.save(update_fields=["proposed_time"])
 
         report_outcome(self.session, self.teacher, SwapSession.Outcome.COMPLETED)
         report_outcome(self.session, self.learner, SwapSession.Outcome.NO_SHOW)
@@ -234,7 +235,7 @@ class SwapDepositStateMachineTests(TestCase):
         """
         confirm_time(self.session, self.learner)
         self.session.proposed_time = timezone.now() - timedelta(hours=30)
-        self.session.save()
+        self.session.save(update_fields=["proposed_time"])
 
         # Learner reports teacher was a no-show
         report_outcome(self.session, self.learner, SwapSession.Outcome.NO_SHOW)
@@ -259,7 +260,7 @@ class SwapDepositStateMachineTests(TestCase):
         """Acceptance test: Path 6 - nobody reports within 72h -> both returned."""
         confirm_time(self.session, self.learner)
         self.session.proposed_time = timezone.now() - timedelta(hours=73)
-        self.session.save()
+        self.session.save(update_fields=["proposed_time"])
 
         resolve_all_swaps()
 
@@ -287,7 +288,7 @@ class SwapDepositStateMachineTests(TestCase):
         """Ratings give 1-5 stars, recorded only once, and give 0 credits."""
         confirm_time(self.session, self.learner)
         self.session.proposed_time = timezone.now() - timedelta(hours=2)
-        self.session.save()
+        self.session.save(update_fields=["proposed_time"])
         report_outcome(self.session, self.teacher, SwapSession.Outcome.COMPLETED)
         report_outcome(self.session, self.learner, SwapSession.Outcome.COMPLETED)
 

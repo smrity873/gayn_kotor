@@ -2,16 +2,19 @@ from datetime import timedelta
 from unittest.mock import patch
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.test import TestCase, Client
+from django.db import connection, transaction
+from django.test import TestCase, Client, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
+from campus.models import BatchMembership
+from courses.models import Course
 from credits.models import CreditLedger
 from credits.services import add_entry, get_balance
 from notes.forms import NoteForm
-from notes.models import Note, NoteDownload, NoteRating, validate_pdf_header
+from notes.models import Note, NoteAppeal, NoteDownload, NoteRating, validate_pdf_header
 from notes.services import (
     approve_note,
     can_view_note,
@@ -19,6 +22,7 @@ from notes.services import (
     visible_notes,
 )
 from notifications.models import Notification
+from swaps.models import SwapSession
 from core.testing import (
     give_credits,
     make_batch,
@@ -402,3 +406,407 @@ class PrivateStorageProtectionTests(TestCase):
         self.assertTrue(str(note.file.path).startswith(str(settings.PRIVATE_MEDIA_ROOT)))
         # File must NOT be inside MEDIA_ROOT
         self.assertFalse(str(note.file.path).startswith(str(settings.MEDIA_ROOT)))
+
+
+class DashboardViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.dept = make_department()
+        self.batch = make_batch(department=self.dept)
+        self.student = make_student(batch=self.batch)
+        self.cr_student = make_student(batch=self.batch, cr=True)
+        self.lecturer = make_lecturer()
+        self.teacher_batch = make_batch(department=self.dept, class_teacher=self.lecturer)
+        self.admin = User.objects.create_superuser(
+            username="admin_user",
+            email="admin@example.com",
+            password="AdminPass123!",
+            id_number="ADM-001",
+        )
+
+    def test_dashboard_requires_login(self):
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/accounts/login/", resp.url)
+
+    def test_student_dashboard_widgets(self):
+        give_credits(self.student, 40)
+        # Add a note
+        note = make_note(owner=self.student, department=self.dept, status=Note.Status.APPROVED)
+        # Add a download
+        other_note = make_note(department=self.dept, status=Note.Status.APPROVED)
+        NoteDownload.objects.create(user=self.student, note=other_note)
+        # Add a notification
+        Notification.objects.create(user=self.student, message="Welcome student!")
+        # Add a swap session
+        other_user = make_student(batch=self.batch)
+        SwapSession.objects.create(
+            teacher=self.student,
+            learner=other_user,
+            skill_name="Python",
+            status=SwapSession.Status.SCHEDULED,
+            proposed_time=timezone.now() + timedelta(days=1),
+        )
+
+        self.client.force_login(self.student)
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+
+        ctx = resp.context
+        self.assertTrue(ctx["is_student"])
+        self.assertFalse(ctx["is_cr"])
+        self.assertFalse(ctx["is_class_teacher"])
+        self.assertFalse(ctx["is_admin"])
+
+        self.assertIn("student", ctx)
+        self.assertEqual(ctx["student"]["nut_balance"], 40)
+        self.assertEqual(len(ctx["student"]["unlocked_notes"]), 1)
+        self.assertEqual(len(ctx["student"]["upcoming_sessions"]), 1)
+        self.assertEqual(ctx["student"]["unread_count"], 1)
+
+        # Template checks
+        self.assertContains(resp, "Welcome back,")
+        self.assertContains(resp, "Nut Hollow Balance")
+        self.assertNotContains(resp, "Class Teacher Management")
+        self.assertNotContains(resp, "System Administration")
+        self.assertNotContains(resp, "CR Review Queue:")
+
+    def test_cr_student_dashboard_shows_review_queue(self):
+        # A pending note in CR's batch
+        pending_note = make_note(
+            department=self.dept, batch=self.batch, status=Note.Status.PENDING, title="CR Review Note"
+        )
+
+        self.client.force_login(self.cr_student)
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+
+        ctx = resp.context
+        self.assertTrue(ctx["is_student"])
+        self.assertTrue(ctx["is_cr"])
+        self.assertTrue(ctx["student"]["is_cr"])
+        self.assertEqual(ctx["student"]["review_queue_count"], 1)
+        self.assertContains(resp, "CR Review Queue:")
+        self.assertContains(resp, "CR Review Note")
+
+    def test_class_teacher_dashboard_widgets(self):
+        # Escalated note in teacher's batch
+        escalated_note = make_note(
+            department=self.dept,
+            batch=self.teacher_batch,
+            status=Note.Status.PENDING,
+            escalated_at=timezone.now() - timedelta(days=2),
+            title="Escalated Note",
+        )
+        # Open appeal
+        NoteAppeal.objects.create(
+            note=escalated_note,
+            user=escalated_note.owner,
+            message="Please approve this",
+            status=NoteAppeal.Status.OPEN,
+        )
+
+        self.client.force_login(self.lecturer)
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+
+        ctx = resp.context
+        self.assertTrue(ctx["is_lecturer"])
+        self.assertTrue(ctx["is_class_teacher"])
+        self.assertFalse(ctx["is_student"])
+        self.assertFalse(ctx["is_admin"])
+
+        self.assertIn("class_teacher", ctx)
+        self.assertEqual(ctx["class_teacher"]["escalated_count"], 1)
+        self.assertEqual(ctx["class_teacher"]["open_appeals_count"], 1)
+        self.assertContains(resp, "Class Teacher Management")
+        self.assertContains(resp, "Escalated Note")
+        self.assertContains(resp, "Lecturer Overview")
+
+    @override_settings(ENABLE_VIDEO_COURSES=False)
+    def test_lecturer_courses_hidden_when_flag_disabled(self):
+        Course.objects.create(
+            instructor=self.lecturer,
+            title="Advanced Algorithms",
+            description="Deep dive",
+            price=250.00,
+            video_file=sample_pdf_file("video.mp4"),
+            is_published=True,
+        )
+
+        self.client.force_login(self.lecturer)
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+
+        ctx = resp.context
+        self.assertNotIn("courses", ctx.get("lecturer", {}))
+        self.assertNotContains(resp, "Advanced Algorithms")
+        self.assertNotContains(resp, "My Video Courses")
+
+    @override_settings(ENABLE_VIDEO_COURSES=True)
+    def test_lecturer_courses_visible_when_flag_enabled(self):
+        Course.objects.create(
+            instructor=self.lecturer,
+            title="Advanced Algorithms",
+            description="Deep dive",
+            price=250.00,
+            video_file=sample_pdf_file("video.mp4"),
+            is_published=True,
+        )
+
+        self.client.force_login(self.lecturer)
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+
+        ctx = resp.context
+        self.assertIn("courses", ctx.get("lecturer", {}))
+        self.assertEqual(len(ctx["lecturer"]["courses"]), 1)
+        self.assertContains(resp, "Advanced Algorithms")
+        self.assertContains(resp, "My Video Courses")
+
+    def test_admin_dashboard_widgets(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+
+        ctx = resp.context
+        self.assertTrue(ctx["is_admin"])
+        self.assertIn("admin", ctx)
+        self.assertIn("check_ledger_summary", ctx["admin"])
+        self.assertEqual(ctx["admin"]["check_ledger_summary"]["total_issues"], 0)
+        self.assertContains(resp, "System Administration")
+        self.assertContains(resp, "Credit Ledger Integrity Check")
+        self.assertContains(resp, reverse("admin:index"))
+        # Admin should not have direct moderation buttons in admin widget
+        self.assertNotContains(resp, "CR Review Queue:")
+
+    def test_multirole_union_of_widgets(self):
+        multi_user = make_student(batch=self.batch)
+        multi_user.is_staff = True
+        multi_user.save()
+
+        self.client.force_login(multi_user)
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+
+        ctx = resp.context
+        self.assertTrue(ctx["is_student"])
+        self.assertTrue(ctx["is_admin"])
+        self.assertIn("student", ctx)
+        self.assertIn("admin", ctx)
+        self.assertContains(resp, "Nut Hollow Balance")
+        self.assertContains(resp, "System Administration")
+
+    def test_dashboard_query_count_bounded(self):
+        for i in range(10):
+            n = make_note(owner=self.student, department=self.dept, status=Note.Status.APPROVED)
+            Notification.objects.create(user=self.student, message=f"Notif {i}")
+            add_entry(self.student, 5, CreditLedger.Reason.SIGNUP_BONUS, f"Bonus {i}")
+            other = make_student(batch=self.batch)
+            SwapSession.objects.create(
+                teacher=self.student,
+                learner=other,
+                skill_name=f"Skill {i}",
+                status=SwapSession.Status.SCHEDULED,
+                proposed_time=timezone.now() + timedelta(days=1),
+            )
+
+        self.client.force_login(self.student)
+        with CaptureQueriesContext(connection) as queries:
+            resp = self.client.get(reverse("core:dashboard"))
+            self.assertEqual(resp.status_code, 200)
+        # Verify query count is bounded and has no N+1 query explosion
+        self.assertLess(len(queries), 20)
+
+
+class HomePageViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.dept = make_department()
+        self.batch = make_batch(department=self.dept)
+
+    def test_home_popular_notes_leakage_prevention(self):
+        owner = make_student(batch=self.batch)
+        # 1. Public approved (should appear)
+        public_note = make_note(
+            owner=owner,
+            department=self.dept,
+            visibility=Note.Visibility.PUBLIC,
+            status=Note.Status.APPROVED,
+            title="Public Approved Note",
+        )
+        # 2. Public unverified (should appear)
+        unverified_note = make_note(
+            owner=owner,
+            department=self.dept,
+            visibility=Note.Visibility.PUBLIC,
+            status=Note.Status.UNVERIFIED,
+            title="Public Unverified Note",
+        )
+        # 3. Department-only (MUST NOT appear to anonymous)
+        dept_note = make_note(
+            owner=owner,
+            department=self.dept,
+            visibility=Note.Visibility.DEPARTMENT,
+            status=Note.Status.APPROVED,
+            title="Department Private Note",
+        )
+        # 4. Batch-only (MUST NOT appear to anonymous)
+        batch_note = make_note(
+            owner=owner,
+            department=self.dept,
+            batch=self.batch,
+            visibility=Note.Visibility.BATCH,
+            status=Note.Status.APPROVED,
+            title="Batch Private Note",
+        )
+        # 5. Pending note (MUST NOT appear)
+        pending_note = make_note(
+            owner=owner,
+            department=self.dept,
+            visibility=Note.Visibility.PUBLIC,
+            status=Note.Status.PENDING,
+            title="Pending Secret Note",
+        )
+        # 6. Rejected note (MUST NOT appear)
+        rejected_note = make_note(
+            owner=owner,
+            department=self.dept,
+            visibility=Note.Visibility.PUBLIC,
+            status=Note.Status.REJECTED,
+            title="Rejected Secret Note",
+        )
+
+        resp = self.client.get(reverse("core:home"))
+        self.assertEqual(resp.status_code, 200)
+
+        popular = resp.context["popular_notes"]
+        popular_titles = [n.title for n in popular]
+        self.assertIn("Public Approved Note", popular_titles)
+        self.assertIn("Public Unverified Note", popular_titles)
+        self.assertNotIn("Department Private Note", popular_titles)
+        self.assertNotIn("Batch Private Note", popular_titles)
+        self.assertNotIn("Pending Secret Note", popular_titles)
+        self.assertNotIn("Rejected Secret Note", popular_titles)
+
+        self.assertContains(resp, "Public Approved Note")
+        self.assertContains(resp, "Public Unverified Note")
+        self.assertNotContains(resp, "Department Private Note")
+        self.assertNotContains(resp, "Batch Private Note")
+        self.assertNotContains(resp, "Pending Secret Note")
+        self.assertNotContains(resp, "Rejected Secret Note")
+
+    def test_home_popular_notes_order_and_limit(self):
+        owner = make_student(batch=self.batch)
+        notes = []
+        for i in range(8):
+            n = make_note(
+                owner=owner,
+                department=self.dept,
+                visibility=Note.Visibility.PUBLIC,
+                status=Note.Status.APPROVED,
+                title=f"Note {i}",
+            )
+            if i == 7:
+                for u in range(5):
+                    user_dl = make_student(batch=self.batch)
+                    NoteDownload.objects.create(user=user_dl, note=n)
+            notes.append(n)
+
+        resp = self.client.get(reverse("core:home"))
+        self.assertEqual(resp.status_code, 200)
+
+        popular = resp.context["popular_notes"]
+        self.assertEqual(len(popular), 6)
+        self.assertEqual(popular[0].title, "Note 7")
+
+    @override_settings(ENABLE_VIDEO_COURSES=True)
+    def test_home_courses_gated_when_enabled(self):
+        lec = make_lecturer()
+        Course.objects.create(
+            instructor=lec,
+            title="Published Python Course",
+            description="Complete Python",
+            price=300.00,
+            video_file=sample_pdf_file("video.mp4"),
+            is_published=True,
+        )
+        Course.objects.create(
+            instructor=lec,
+            title="Draft Hidden Course",
+            description="Draft",
+            price=100.00,
+            video_file=sample_pdf_file("video.mp4"),
+            is_published=False,
+        )
+
+        resp = self.client.get(reverse("core:home"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Featured Video Courses")
+        self.assertContains(resp, "Published Python Course")
+        self.assertNotContains(resp, "Draft Hidden Course")
+
+    @override_settings(ENABLE_VIDEO_COURSES=False)
+    def test_home_courses_gated_when_disabled(self):
+        lec = make_lecturer()
+        Course.objects.create(
+            instructor=lec,
+            title="Published Python Course",
+            description="Complete Python",
+            price=300.00,
+            video_file=sample_pdf_file("video.mp4"),
+            is_published=True,
+        )
+
+        resp = self.client.get(reverse("core:home"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "Featured Video Courses")
+        self.assertNotContains(resp, "Published Python Course")
+        self.assertEqual(resp.context["latest_courses"], [])
+
+    def test_home_cta_buttons(self):
+        # Anonymous visitor
+        resp = self.client.get(reverse("core:home"))
+        self.assertContains(resp, "Get started free")
+        self.assertNotContains(resp, "Go to dashboard")
+
+        # Authenticated student
+        student = make_student(batch=self.batch)
+        self.client.force_login(student)
+        resp_auth = self.client.get(reverse("core:home"))
+        self.assertContains(resp_auth, "Go to dashboard")
+        self.assertNotContains(resp_auth, "Get started free")
+
+
+class NavigationAndPolishTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.student = make_student()
+
+    def test_navbar_dashboard_link(self):
+        # Anonymous
+        resp = self.client.get(reverse("core:home"))
+        self.assertNotContains(resp, reverse("core:dashboard"))
+
+        # Authenticated
+        self.client.force_login(self.student)
+        resp_auth = self.client.get(reverse("core:home"))
+        self.assertContains(resp_auth, reverse("core:dashboard"))
+
+    @override_settings(ENABLE_VIDEO_COURSES=True)
+    def test_courses_nav_link_flag_enabled(self):
+        resp = self.client.get(reverse("core:home"))
+        self.assertContains(resp, reverse("courses:course_list"))
+
+    @override_settings(ENABLE_VIDEO_COURSES=False)
+    def test_courses_nav_link_flag_disabled(self):
+        resp = self.client.get(reverse("core:home"))
+        self.assertNotContains(resp, reverse("courses:course_list"))
+
+    def test_403_and_404_templates(self):
+        with override_settings(DEBUG=False):
+            resp_404 = self.client.get("/non-existent-url-path-404/")
+            self.assertEqual(resp_404.status_code, 404)
+            self.assertContains(resp_404, "404 Not Found", status_code=404)
+            self.assertContains(resp_404, "This nut fell off the tree", status_code=404)
+

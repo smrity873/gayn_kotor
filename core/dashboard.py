@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.conf import settings
 from django.db.models import Count, Q, Sum
 from django.urls import reverse
@@ -100,9 +101,15 @@ def build_class_teacher_context(user):
     if not batches:
         return {}
 
-    # Escalated notes
+    # Escalated notes (pending notes marked escalated or past escalation deadline)
+    now = timezone.now()
+    escalate_threshold = now - timedelta(days=getattr(settings, "NOTE_ESCALATE_DAYS", 3))
     escalated_notes = list(
-        Note.objects.filter(batch__in=batches, status=Note.Status.ESCALATED)
+        Note.objects.filter(
+            batch__in=batches,
+            status=Note.Status.PENDING,
+        )
+        .filter(Q(escalated_at__isnull=False) | Q(created_at__lte=escalate_threshold))
         .select_related("owner", "department", "batch")
         .order_by("created_at")[:5]
     )
@@ -111,7 +118,7 @@ def build_class_teacher_context(user):
     flagged_notes = list(
         Note.objects.filter(batch__in=batches, status=Note.Status.FLAGGED)
         .select_related("owner", "department", "batch")
-        .order_by("-updated_at")[:5]
+        .order_by("-created_at")[:5]
     )
 
     # Open appeals
