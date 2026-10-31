@@ -537,8 +537,8 @@ React or any SPA framework, Celery or any always-on scheduler, calling Google Me
 
 | # | Question | Default used |
 |---|---|---|
-| 1 | Product name: "Skillo" (plan) vs "Gayn Kotor" (current UI) | UI keeps "Gayn Kotor" via `SITE_NAME`; docs mention both |
-| 2 | Does the university have its own email domain? | `ALLOWED_EMAIL_DOMAINS` empty; ID checking by CR/teacher is the safeguard |
+| 1 | Product name: "Gayn Kotor" (current UI) | UI keeps "Gayn Kotor" via `SITE_NAME`; docs mention both |
+| 2 | Does the university have its own email domain? | `ALLOWED_EMAIL_DOMAINS` empty, use any domain's email; ID checking by CR/teacher is the safeguard |
 | 3 | Exactly one class teacher per batch? | Yes (matches the `Batch.class_teacher` field) |
 | 4 | Swap deposit of 10 credits each, forfeited to the attending party? | Yes, as specified in Phase 5 |
 | 5 | Is the video-course pillar acceptable to the teacher? | Built behind `ENABLE_VIDEO_COURSES`, on in development |

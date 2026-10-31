@@ -152,3 +152,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("\nAll integrity checks PASSED. Ledger is completely consistent."))
         else:
             self.stdout.write(self.style.WARNING(f"\nTotal integrity issues detected: {findings['total_issues']}"))
+
