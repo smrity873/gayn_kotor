@@ -15,7 +15,7 @@ def get_balance(user):
 
 
 @transaction.atomic
-def add_entry(user, amount, reason, description="", allow_negative=False, notify=True):
+def add_entry(user, amount, reason, description="", allow_negative=False, notify=True, reverses=None):
     if amount < 0:
         get_user_model().objects.select_for_update().get(pk=user.pk)
         if not allow_negative and get_balance(user) + amount < 0:
@@ -26,6 +26,7 @@ def add_entry(user, amount, reason, description="", allow_negative=False, notify
         amount=amount,
         reason=reason,
         description=description,
+        reverses=reverses,
     )
 
     if notify and amount != 0:
@@ -46,6 +47,30 @@ def add_entry(user, amount, reason, description="", allow_negative=False, notify
         transaction.on_commit(send_notif)
 
     return entry
+
+
+@transaction.atomic
+def reverse_entry(entry):
+    """Reverses a given CreditLedger entry by creating a REVERSAL row (allow_negative=True)
+    with description 'Reversal of #<id>' and linking reverses=entry.
+    Raises ValueError if entry is already a reversal or has already been reversed.
+    """
+    if entry.reason == CreditLedger.Reason.REVERSAL:
+        raise ValueError(f"Entry #{entry.id} is already a reversal.")
+    if hasattr(entry, "reversed_by") and entry.reversed_by is not None:
+        raise ValueError(f"Entry #{entry.id} has already been reversed by #{entry.reversed_by.id}.")
+    if CreditLedger.objects.filter(reverses=entry).exists():
+        raise ValueError(f"Entry #{entry.id} has already been reversed.")
+
+    return add_entry(
+        user=entry.user,
+        amount=-entry.amount,
+        reason=CreditLedger.Reason.REVERSAL,
+        description=f"Reversal of #{entry.id}",
+        allow_negative=True,
+        notify=True,
+        reverses=entry,
+    )
 
 
 @transaction.atomic

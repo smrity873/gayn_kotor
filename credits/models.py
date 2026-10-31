@@ -25,6 +25,14 @@ class CreditLedger(models.Model):
     amount = models.IntegerField(_("amount"))
     reason = models.CharField(max_length=20, choices=Reason.choices)
     description = models.CharField(max_length=200, blank=True)
+    reverses = models.OneToOneField(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reversed_by",
+        help_text=_("The ledger entry that this entry reverses."),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
