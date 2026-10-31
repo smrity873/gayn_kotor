@@ -8,7 +8,7 @@
 <section class="relative overflow-hidden">
     <div class="pointer-events-none absolute -top-24 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-green-300/40 blur-3xl dark:bg-green-700/20"></div>
 
-    <div class="relative mx-auto max-w-4xl px-6 pb-20 pt-20 text-center md:pt-28">
+    <div class="relative mx-auto max-w-4xl px-6 pb-16 pt-20 text-center md:pt-24">
         <span class="inline-flex items-center gap-2 rounded-full border border-green-200 bg-card px-4 py-1.5 text-sm font-medium text-green-700 dark:border-green-800 dark:bg-card-dark dark:text-green-300">
             <span class="text-nut dark:text-nut-dark">🌰</span> Credit-based campus knowledge exchange
         </span>
@@ -19,33 +19,172 @@
         </h1>
 
         <p class="mx-auto mt-6 max-w-2xl text-lg text-green-900/70 dark:text-green-100/70">
-            Upload study notes, sell video courses and swap skills with students and teachers of your campus.
+            Upload study notes, {% if ENABLE_VIDEO_COURSES %}sell video courses, {% endif %}and swap skills with students and teachers of your campus.
             Earn nuts, grow your hollow.
         </p>
 
         <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            {% if user.is_authenticated %}
+            <a href="{% url 'core:dashboard' %}" class="rounded-full bg-green-600 px-8 py-3.5 font-bold text-white shadow-xl shadow-green-600/30 transition hover:-translate-y-0.5 hover:bg-green-700">
+                Go to dashboard &rarr;
+            </a>
+            <a href="{% url 'notes:list' %}" class="rounded-full border border-green-300 px-8 py-3.5 font-semibold text-green-700 transition hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/40">
+                Browse Notes
+            </a>
+            {% else %}
             <a href="{% url 'accounts:signup' %}" class="rounded-full bg-green-600 px-8 py-3.5 font-semibold text-white shadow-xl shadow-green-600/30 transition hover:-translate-y-0.5 hover:bg-green-700">
                 Get started free
             </a>
             <a href="#how" class="rounded-full border border-green-300 px-8 py-3.5 font-semibold text-green-700 transition hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/40">
                 How it works
             </a>
+            {% endif %}
         </div>
 
         <p class="mt-6 text-sm text-green-900/60 dark:text-green-100/50">
+            {% if not user.is_authenticated %}
             Sign up and get <span class="font-semibold text-nut dark:text-nut-dark">30 free nuts</span> to start.
+            {% else %}
+            Welcome back! Check your dashboard for ongoing sessions and updates.
+            {% endif %}
         </p>
     </div>
 </section>
 
+<!-- PLATFORM COUNTERS -->
+<section class="mx-auto max-w-6xl px-6 mb-16">
+    <div class="grid grid-cols-2 gap-4 rounded-3xl border border-green-100 bg-white p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark sm:grid-cols-4 sm:p-8">
+        <div class="text-center p-3">
+            <p class="text-3xl font-black text-green-700 dark:text-green-400 sm:text-4xl">{{ counters.notes_count }}</p>
+            <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Study Notes</p>
+        </div>
+        <div class="text-center p-3">
+            <p class="text-3xl font-black text-emerald-700 dark:text-emerald-400 sm:text-4xl">{{ counters.students_count }}</p>
+            <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Active Students</p>
+        </div>
+        <div class="text-center p-3">
+            <p class="text-3xl font-black text-blue-700 dark:text-blue-400 sm:text-4xl">{{ counters.swaps_count }}</p>
+            <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Skill Swaps</p>
+        </div>
+        <div class="text-center p-3">
+            <p class="text-3xl font-black text-amber-600 dark:text-amber-400 sm:text-4xl">{{ counters.nuts_circulating }}</p>
+            <p class="mt-1 text-xs font-semibold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Nuts In System</p>
+        </div>
+    </div>
+</section>
+
+<!-- POPULAR STUDY NOTES -->
+<section class="mx-auto max-w-6xl px-6 mb-20">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-4">
+        <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-green-600 dark:text-green-400">Knowledge Base</span>
+            <h2 class="mt-1 text-3xl font-bold text-green-950 dark:text-green-50">Popular Study Notes</h2>
+            <p class="mt-1 text-sm text-green-900/70 dark:text-green-100/70">Top notes unlocked by peers across the campus.</p>
+        </div>
+        <a href="{% url 'notes:list' %}" class="inline-flex items-center gap-1 text-sm font-bold text-green-700 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300">
+            Explore all notes <span>&rarr;</span>
+        </a>
+    </div>
+
+    {% if popular_notes %}
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {% for note in popular_notes %}
+        <article class="group flex flex-col justify-between rounded-2xl border border-green-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-green-900/60 dark:bg-card-dark">
+            <div>
+                <div class="flex items-center justify-between text-xs text-green-800/70 dark:text-green-300/70">
+                    <span class="rounded-full bg-green-100 px-2.5 py-0.5 font-bold text-green-800 dark:bg-green-900/50 dark:text-green-200">
+                        {{ note.department.code }}
+                    </span>
+                    <span class="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+                        🌰 {{ note.price }} nuts
+                    </span>
+                </div>
+                <h3 class="mt-4 text-lg font-bold text-green-950 group-hover:text-green-700 dark:text-green-50 dark:group-hover:text-green-300 line-clamp-2">
+                    <a href="{% url 'notes:detail' note.id %}">{{ note.title }}</a>
+                </h3>
+                <p class="mt-2 text-xs text-green-900/60 dark:text-green-100/60 line-clamp-2">
+                    {{ note.description|default:"No description provided." }}
+                </p>
+            </div>
+
+            <div class="mt-6 flex items-center justify-between border-t border-green-100/60 pt-4 text-xs dark:border-green-900/40">
+                <span class="text-green-900/60 dark:text-green-200/60">
+                    By <strong class="text-green-950 dark:text-green-100">{{ note.owner.username }}</strong>
+                </span>
+                <span class="font-medium text-green-700 dark:text-green-400">
+                    🔓 {{ note.unlocks_count }} unlocks
+                </span>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="rounded-2xl border border-dashed border-green-200 p-12 text-center dark:border-green-800">
+        <span class="text-4xl">📚</span>
+        <h3 class="mt-3 text-base font-bold text-green-950 dark:text-green-50">No notes published yet</h3>
+        <p class="mt-1 text-xs text-green-900/60 dark:text-green-100/60">Be the first to share your study notes and earn nuts!</p>
+        <a href="{% url 'notes:upload' %}" class="mt-4 inline-block rounded-full bg-green-600 px-5 py-2 text-xs font-bold text-white hover:bg-green-700">
+            Upload Note
+        </a>
+    </div>
+    {% endif %}
+</section>
+
+<!-- FEATURED VIDEO COURSES (FLAG-GATED) -->
+{% if ENABLE_VIDEO_COURSES and latest_courses %}
+<section class="mx-auto max-w-6xl px-6 mb-20">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-4">
+        <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Premium Learning</span>
+            <h2 class="mt-1 text-3xl font-bold text-green-950 dark:text-green-50">Featured Video Courses</h2>
+            <p class="mt-1 text-sm text-green-900/70 dark:text-green-100/70">Master complete topics with in-depth video lectures from verified instructors.</p>
+        </div>
+        <a href="{% url 'courses:course_list' %}" class="inline-flex items-center gap-1 text-sm font-bold text-green-700 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300">
+            View all courses <span>&rarr;</span>
+        </a>
+    </div>
+
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {% for course in latest_courses %}
+        <article class="group flex flex-col justify-between rounded-2xl border border-green-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-green-900/60 dark:bg-card-dark">
+            <div>
+                <div class="aspect-video w-full rounded-xl bg-green-100 flex items-center justify-center text-3xl overflow-hidden dark:bg-green-900/40">
+                    {% if course.thumbnail %}
+                    <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" class="h-full w-full object-cover">
+                    {% else %}
+                    🎬
+                    {% endif %}
+                </div>
+                <h3 class="mt-4 font-bold text-green-950 group-hover:text-green-700 dark:text-green-50 dark:group-hover:text-green-300 line-clamp-2 text-base">
+                    {{ course.title }}
+                </h3>
+                <p class="mt-1 text-xs text-green-900/60 dark:text-green-100/60 line-clamp-2">
+                    {{ course.description }}
+                </p>
+            </div>
+
+            <div class="mt-5 flex items-center justify-between border-t border-green-100/60 pt-4 text-xs dark:border-green-900/40">
+                <span class="text-green-900/60 dark:text-green-200/60">
+                    {{ course.instructor.username }}
+                </span>
+                <span class="font-bold text-green-700 dark:text-green-400">
+                    ৳ {{ course.price }}
+                </span>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 <!-- THREE PILLARS -->
-<section class="mx-auto max-w-6xl px-6">
+<section class="mx-auto max-w-6xl px-6 mb-24">
     <div class="text-center">
         <h2 class="text-3xl font-bold text-green-900 dark:text-green-50">Three ways to grow</h2>
         <p class="mt-2 text-green-900/70 dark:text-green-100/70">Everything your campus knows, in one place.</p>
     </div>
 
-    <div class="mt-12 grid gap-6 md:grid-cols-3">
+    <div class="mt-12 grid gap-6 {% if ENABLE_VIDEO_COURSES %}md:grid-cols-3{% else %}md:grid-cols-2{% endif %}">
 
         <div class="group rounded-2xl border border-green-100 bg-card p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-green-900/60 dark:bg-card-dark">
             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-2xl dark:bg-green-900/50">📚</div>
@@ -54,12 +193,14 @@
             <span class="mt-4 inline-block rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-nut dark:bg-amber-900/30 dark:text-nut-dark">🌰 Pay with nuts</span>
         </div>
 
+        {% if ENABLE_VIDEO_COURSES %}
         <div class="group rounded-2xl border border-green-100 bg-card p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-green-900/60 dark:bg-card-dark">
             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-2xl dark:bg-green-900/50">🎬</div>
             <h3 class="mt-5 text-xl font-bold text-green-900 dark:text-green-50">Video Courses</h3>
             <p class="mt-2 text-green-900/70 dark:text-green-100/70">Learn from skilled seniors and lecturers, or publish your own course and earn real money.</p>
             <span class="mt-4 inline-block rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-300">৳ Pay with money</span>
         </div>
+        {% endif %}
 
         <div class="group rounded-2xl border border-green-100 bg-card p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-green-900/60 dark:bg-card-dark">
             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-2xl dark:bg-green-900/50">🤝</div>
@@ -72,7 +213,7 @@
 </section>
 
 <!-- HOW IT WORKS -->
-<section id="how" class="mx-auto mt-28 max-w-6xl px-6">
+<section id="how" class="mx-auto max-w-6xl px-6 mb-20">
     <div class="text-center">
         <h2 class="text-3xl font-bold text-green-900 dark:text-green-50">How it works</h2>
     </div>
@@ -91,7 +232,7 @@
         <div class="text-center">
             <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-xl font-bold text-white shadow-lg shadow-green-600/30">3</div>
             <h3 class="mt-4 text-lg font-bold">Learn anything</h3>
-            <p class="mt-1 text-green-900/70 dark:text-green-100/70">Spend nuts on notes and swaps, or buy a full video course.</p>
+            <p class="mt-1 text-green-900/70 dark:text-green-100/70">Spend nuts on notes and swaps{% if ENABLE_VIDEO_COURSES %}, or buy a full video course{% endif %}.</p>
         </div>
     </div>
 </section>
