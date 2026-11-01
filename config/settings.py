@@ -220,14 +220,32 @@ STORAGES = {
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-_email_backend = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+default_email_backend = "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend"
+_email_backend = os.getenv("EMAIL_BACKEND", default_email_backend)
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@localhost")
 
 MAILERS = {
     'default': {
         'BACKEND': _email_backend,
+        'OPTIONS': {
+            'host': os.getenv("EMAIL_HOST", "localhost"),
+            'port': int(os.getenv("EMAIL_PORT", "587")),
+            'username': os.getenv("EMAIL_HOST_USER", ""),
+            'password': os.getenv("EMAIL_HOST_PASSWORD", ""),
+            'use_tls': os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes"),
+        },
     },
 }
+
+# Production & Security Hardening (PRD 8.1)
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("SECURE_HSTS_INCLUDE_SUBDOMAINS", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+SECURE_HSTS_PRELOAD = os.getenv("SECURE_HSTS_PRELOAD", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
 
 AUTH_USER_MODEL = "accounts.User"
 
