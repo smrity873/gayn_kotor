@@ -9,5 +9,6 @@ urlpatterns = [
     path("orders/<uuid:order_id>/", views.order_detail, name="order_detail"),
     path("sandbox/<uuid:order_id>/", views.sandbox_view, name="sandbox"),
     path("callback/", views.gateway_callback, name="callback"),
+    path("wallet/", views.wallet_overview, name="wallet"),
+    path("withdrawals/", views.withdrawals_view, name="withdrawals"),
 ]
-

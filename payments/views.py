@@ -1,17 +1,24 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
 from accounts.decorators import verified_required
-from .models import PaymentOrder
-from .services import complete_order, create_order, get_gateway
+from .models import PaymentOrder, WalletEntry, WithdrawalRequest
+from .services import (
+    complete_order,
+    create_order,
+    create_withdrawal_request,
+    get_gateway,
+    get_wallet_balance,
+)
 
 
 @login_required
@@ -119,3 +126,75 @@ def gateway_callback(request):
     complete_order(order, result)
     return redirect("payments:order_detail", order_id=order.id)
 
+
+@login_required
+def wallet_overview(request):
+    """
+    PRD 7.7: Instructor wallet overview showing current balance,
+    append-only financial entries, and withdrawal options.
+    """
+    balance = get_wallet_balance(request.user)
+    entries_qs = request.user.wallet_entries.all().order_by("-created_at")
+    paginator = Paginator(entries_qs, 20)
+    page = paginator.get_page(request.GET.get("page"))
+
+    recent_withdrawals = request.user.withdrawal_requests.all().order_by("-created_at")[:10]
+    min_withdraw = getattr(settings, "WITHDRAW_MIN_BDT", Decimal("500"))
+
+    context = {
+        "balance": balance,
+        "page": page,
+        "recent_withdrawals": recent_withdrawals,
+        "min_withdraw": min_withdraw,
+        "methods": WithdrawalRequest.Method.choices,
+    }
+    return render(request, "payments/wallet.html", context)
+
+
+@login_required
+def withdrawals_view(request):
+    """
+    PRD 7.8: Request a cash withdrawal from instructor wallet or view history.
+    """
+    if request.method == "POST":
+        amount_raw = request.POST.get("amount", "").strip()
+        method = request.POST.get("method", "").strip()
+        account_details = request.POST.get("account_details", "").strip()
+
+        try:
+            amount = Decimal(amount_raw)
+        except (InvalidOperation, TypeError, ValueError):
+            messages.error(request, _("Please enter a valid withdrawal amount."))
+            return redirect("payments:wallet")
+
+        if not method or method not in dict(WithdrawalRequest.Method.choices):
+            messages.error(request, _("Please select a valid withdrawal method."))
+            return redirect("payments:wallet")
+
+        if not account_details:
+            messages.error(request, _("Please provide your account / phone number details."))
+            return redirect("payments:wallet")
+
+        try:
+            create_withdrawal_request(
+                user=request.user,
+                amount=amount,
+                method=method,
+                account_details=account_details,
+            )
+            messages.success(
+                request,
+                _("Withdrawal request of %(amount)s BDT submitted successfully. An administrator will process it soon.")
+                % {"amount": amount},
+            )
+        except ValidationError as e:
+            messages.error(request, e.message if hasattr(e, "message") else str(e))
+        except Exception as e:
+            messages.error(request, str(e))
+
+        return redirect("payments:wallet")
+
+    withdrawals_qs = request.user.withdrawal_requests.all().order_by("-created_at")
+    paginator = Paginator(withdrawals_qs, 15)
+    page = paginator.get_page(request.GET.get("page"))
+    return render(request, "payments/withdrawals.html", {"page": page})

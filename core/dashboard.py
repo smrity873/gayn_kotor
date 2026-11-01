@@ -192,12 +192,12 @@ def build_lecturer_context(user):
     }
 
     if enable_courses:
+        from payments.services import get_wallet_balance
         courses = list(
             Course.objects.filter(instructor=user).order_by("-created_at")[:5]
         )
-        wallet = getattr(user, "course_wallet", None)
         context["courses"] = courses
-        context["course_wallet"] = wallet
+        context["wallet_balance"] = get_wallet_balance(user)
 
     return context
 

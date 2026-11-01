@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Withdrawals History - {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'payments:wallet' %}" class="text-xs font-semibold text-forest hover:underline dark:text-grass-light">&larr; Back to Wallet</a>
+            </div>
+            <h1 class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">Withdrawal History</h1>
+        </div>
+        <a href="{% url 'payments:wallet' %}" class="rounded-xl bg-forest px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-forest-deep">
+            New Withdrawal
+        </a>
+    </div>
+
+    <div class="mt-8 rounded-2xl border border-fern/20 bg-card p-6 shadow-sm dark:border-fern-dark dark:bg-card-dark">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="border-b border-fern/10 text-xs font-semibold uppercase text-gray-500">
+                    <tr>
+                        <th class="py-2.5">Date</th>
+                        <th class="py-2.5">Amount</th>
+                        <th class="py-2.5">Method</th>
+                        <th class="py-2.5">Account Details</th>
+                        <th class="py-2.5">Status</th>
+                        <th class="py-2.5">Decision Date</th>
+                        <th class="py-2.5">Admin Note</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-fern/10">
+                    {% for req in page %}
+                    <tr>
+                        <td class="py-3 text-xs text-gray-500">{{ req.created_at|date:"M d, Y H:i" }}</td>
+                        <td class="py-3 font-bold text-gray-900 dark:text-white">৳{{ req.amount }}</td>
+                        <td class="py-3 capitalize">{{ req.get_method_display }}</td>
+                        <td class="py-3 text-xs font-mono">{{ req.account_details }}</td>
+                        <td class="py-3">
+                            {% if req.status == "paid" %}
+                            <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">Paid</span>
+                            {% elif req.status == "rejected" %}
+                            <span class="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-800 dark:bg-rose-900/50 dark:text-rose-200">Rejected</span>
+                            {% else %}
+                            <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 text-xs text-gray-500">{{ req.decided_at|date:"M d, Y H:i"|default:"—" }}</td>
+                        <td class="py-3 text-xs text-gray-500">{{ req.admin_note|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-gray-500">No withdrawal requests found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page.has_other_pages %}
+        <div class="mt-6 flex justify-between items-center text-xs">
+            {% if page.has_previous %}
+            <a href="?page={{ page.previous_page_number }}" class="text-forest hover:underline">&larr; Newer</a>
+            {% else %}
+            <span></span>
+            {% endif %}
+            <span class="text-gray-500">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+            {% if page.has_next %}
+            <a href="?page={{ page.next_page_number }}" class="text-forest hover:underline">Older &rarr;</a>
+            {% else %}
+            <span></span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+</section>
+{% endblock %}
+

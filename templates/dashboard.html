@@ -364,15 +364,29 @@
             </div>
         </div>
 
-        <!-- Video Courses Gated (PRD 6.1) -->
+        <!-- Video Courses Gated (PRD 6.1 & 7.5) -->
         {% if ENABLE_VIDEO_COURSES and lecturer.courses is not None %}
         <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
-            <h3 class="text-sm font-bold text-green-950 dark:text-green-50">My Video Courses</h3>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-green-950 dark:text-green-50">My Video Courses</h3>
+                    {% if lecturer.wallet_balance is not None %}
+                    <p class="text-[11px] text-green-900/60 dark:text-green-100/60">Wallet Balance: <strong class="text-forest dark:text-grass-light">৳{{ lecturer.wallet_balance|floatformat:2 }} BDT</strong></p>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="{% url 'payments:wallet' %}" class="text-xs text-green-700 hover:underline dark:text-green-300">Wallet &rarr;</a>
+                    <a href="{% url 'courses:my_courses' %}" class="text-xs text-green-700 hover:underline dark:text-green-300">Manage &rarr;</a>
+                </div>
+            </div>
             <div class="mt-3 divide-y divide-green-50 text-xs dark:divide-green-900/30">
                 {% for c in lecturer.courses %}
                 <div class="flex items-center justify-between py-2">
-                    <p class="font-bold text-green-950 dark:text-green-50">{{ c.title }}</p>
-                    <span class="text-emerald-600 font-semibold">{{ c.price }} BDT</span>
+                    <div>
+                        <a href="{% url 'courses:course_detail' c.id %}" class="font-bold text-green-950 hover:underline dark:text-green-50">{{ c.title }}</a>
+                        <span class="ml-2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase {% if c.status == 'published' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200{% endif %}">{{ c.get_status_display }}</span>
+                    </div>
+                    <span class="text-emerald-600 font-semibold">৳{{ c.price }} BDT</span>
                 </div>
                 {% empty %}
                 <p class="py-4 text-center text-xs text-green-900/50 dark:text-green-100/50">No courses created yet.</p>
