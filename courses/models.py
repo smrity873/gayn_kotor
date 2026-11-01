@@ -83,6 +83,12 @@ class Course(models.Model):
     def total_duration_hours(self):
         return round(self.total_duration_seconds / 3600, 1)
 
+    def clean(self):
+        super().clean()
+        if self.price is not None and self.category:
+            from .services import validate_course_price
+            validate_course_price(self)
+
     def update_duration(self):
         total = self.lessons.aggregate(models.Sum("duration_seconds"))["duration_seconds__sum"] or 0
         self.total_duration_seconds = total

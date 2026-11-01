@@ -275,6 +275,7 @@ SWAP_ALLOWED_LINK_DOMAINS = [
 ENABLE_VIDEO_COURSES = os.getenv("ENABLE_VIDEO_COURSES", "True").lower() in ("true", "1", "yes")
 COURSE_COMMISSION_PERCENT = int(os.getenv("COURSE_COMMISSION_PERCENT", "10"))
 COURSE_VIDEO_MAX_MB = int(os.getenv("COURSE_VIDEO_MAX_MB", "300"))
+COURSE_MAX_TOTAL_MB = int(os.getenv("COURSE_MAX_TOTAL_MB", "2000"))
 COURSE_MIN_BILLABLE_HOURS = float(os.getenv("COURSE_MIN_BILLABLE_HOURS", "0.5"))
 WITHDRAW_MIN_BDT = Decimal(os.getenv("WITHDRAW_MIN_BDT", "500"))
 USE_X_ACCEL_REDIRECT = os.getenv("USE_X_ACCEL_REDIRECT", "False").lower() in ("true", "1", "yes")

@@ -62,25 +62,27 @@ class CourseForm(forms.ModelForm):
         status = cleaned_data.get("status")
 
         if price is not None and category:
-            # If instance already has duration or lessons, check against allowed price range
             duration = self.instance.total_duration_seconds if self.instance.pk else 0
             min_price, max_price = get_allowed_price_range(category, duration)
 
-            if status == Course.Status.PUBLISHED:
-                if self.instance.pk and self.instance.lessons.count() == 0:
-                    raise forms.ValidationError(_("A course must have at least one lesson before publishing."))
-                if price < min_price or price > max_price:
-                    raise forms.ValidationError(
-                        _(
-                            "Price %(price)s BDT is outside the allowed range of %(min)s - %(max)s BDT for %(category)s."
-                        )
-                        % {
-                            "price": price,
-                            "min": min_price,
-                            "max": max_price,
-                            "category": category,
-                        }
+            if price < min_price or price > max_price:
+                self.add_error(
+                    "price",
+                    _(
+                        "Price %(price)s BDT is outside the allowed range of %(min)s - %(max)s BDT for %(category)s (%(dur)d min)."
                     )
+                    % {
+                        "price": price,
+                        "min": min_price,
+                        "max": max_price,
+                        "category": dict(Course.Category.choices).get(category, category),
+                        "dur": round(duration / 60),
+                    },
+                )
+
+            if status == Course.Status.PUBLISHED:
+                if not self.instance.pk or self.instance.lessons.count() == 0:
+                    self.add_error("status", _("A course must have at least one lesson before publishing."))
         return cleaned_data
 
 
@@ -145,7 +147,8 @@ class LessonForm(forms.ModelForm):
 
         if video_file:
             # Server-side validation using mutagen (PRD 7.3)
-            duration = validate_video_file(video_file)
+            course = getattr(self.instance, "course", None)
+            duration = validate_video_file(video_file, course=course)
             self.instance.duration_seconds = duration
         elif video_url and not (self.instance.pk and self.instance.video_file):
             if duration_input:

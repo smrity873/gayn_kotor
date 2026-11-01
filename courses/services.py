@@ -92,9 +92,9 @@ def get_video_duration(file_obj) -> int:
     return None
 
 
-def validate_video_file(file_obj):
+def validate_video_file(file_obj, course: Course = None):
     """
-    PRD 7.3: Validates that uploaded file is MP4 and within size limits.
+    PRD 7.3: Validates that uploaded file is MP4 and within per-file and per-course size limits.
     """
     if not file_obj:
         return
@@ -108,6 +108,21 @@ def validate_video_file(file_obj):
     size = getattr(file_obj, "size", 0)
     if size > max_mb * 1024 * 1024:
         raise ValidationError(_("Video file exceeds maximum size of %(max)d MB.") % {"max": max_mb})
+
+    if course and course.pk:
+        max_total_mb = getattr(settings, "COURSE_MAX_TOTAL_MB", 2000)
+        total_existing = 0
+        for lesson in course.lessons.exclude(video_file=""):
+            if lesson.video_file:
+                try:
+                    total_existing += lesson.video_file.size
+                except Exception:
+                    pass
+        if (total_existing + size) > max_total_mb * 1024 * 1024:
+            raise ValidationError(
+                _("Total course video size would exceed the limit of %(max)d MB.")
+                % {"max": max_total_mb}
+            )
 
     duration = get_video_duration(file_obj)
     if duration is None or duration <= 0:
