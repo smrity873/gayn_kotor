@@ -529,9 +529,9 @@ class DashboardViewTests(TestCase):
             instructor=self.lecturer,
             title="Advanced Algorithms",
             description="Deep dive",
-            price=250.00,
-            video_file=sample_pdf_file("video.mp4"),
-            is_published=True,
+            category=Course.Category.ACADEMIC,
+            price=100.00,
+            status=Course.Status.PUBLISHED,
         )
 
         self.client.force_login(self.lecturer)
@@ -549,9 +549,9 @@ class DashboardViewTests(TestCase):
             instructor=self.lecturer,
             title="Advanced Algorithms",
             description="Deep dive",
-            price=250.00,
-            video_file=sample_pdf_file("video.mp4"),
-            is_published=True,
+            category=Course.Category.ACADEMIC,
+            price=100.00,
+            status=Course.Status.PUBLISHED,
         )
 
         self.client.force_login(self.lecturer)
@@ -727,17 +727,17 @@ class HomePageViewTests(TestCase):
             instructor=lec,
             title="Published Python Course",
             description="Complete Python",
+            category=Course.Category.NON_ACADEMIC,
             price=300.00,
-            video_file=sample_pdf_file("video.mp4"),
-            is_published=True,
+            status=Course.Status.PUBLISHED,
         )
         Course.objects.create(
             instructor=lec,
             title="Draft Hidden Course",
             description="Draft",
-            price=100.00,
-            video_file=sample_pdf_file("video.mp4"),
-            is_published=False,
+            category=Course.Category.NON_ACADEMIC,
+            price=200.00,
+            status=Course.Status.DRAFT,
         )
 
         resp = self.client.get(reverse("core:home"))
@@ -753,9 +753,9 @@ class HomePageViewTests(TestCase):
             instructor=lec,
             title="Published Python Course",
             description="Complete Python",
+            category=Course.Category.NON_ACADEMIC,
             price=300.00,
-            video_file=sample_pdf_file("video.mp4"),
-            is_published=True,
+            status=Course.Status.PUBLISHED,
         )
 
         resp = self.client.get(reverse("core:home"))

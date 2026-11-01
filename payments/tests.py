@@ -223,3 +223,176 @@ class PaymentOrderAndSandboxTests(TestCase):
         )
         self.assertEqual(post_response.status_code, 403)
 
+
+class WalletAndWithdrawalTests(TestCase):
+    def setUp(self):
+        self.user = make_student(username="seller_user")
+        self.client = Client()
+
+    def test_get_wallet_balance_initial_zero(self):
+        from payments.services import get_wallet_balance
+        self.assertEqual(get_wallet_balance(self.user), Decimal("0.00"))
+
+    def test_wallet_balance_calculation_with_entries(self):
+        from payments.models import WalletEntry
+        from payments.services import get_wallet_balance
+
+        # Add course sale entry +900
+        WalletEntry.objects.create(
+            user=self.user,
+            amount=Decimal("900.00"),
+            reason=WalletEntry.Reason.COURSE_SALE,
+            reference="sale:1",
+        )
+        self.assertEqual(get_wallet_balance(self.user), Decimal("900.00"))
+
+        # Add withdrawal hold -500
+        WalletEntry.objects.create(
+            user=self.user,
+            amount=Decimal("-500.00"),
+            reason=WalletEntry.Reason.WITHDRAWAL_HOLD,
+            reference="withdrawal:1",
+        )
+        self.assertEqual(get_wallet_balance(self.user), Decimal("400.00"))
+
+        # Reverse withdrawal +500
+        WalletEntry.objects.create(
+            user=self.user,
+            amount=Decimal("500.00"),
+            reason=WalletEntry.Reason.WITHDRAWAL_REVERSAL,
+            reference="withdrawal:1:reversal",
+        )
+        self.assertEqual(get_wallet_balance(self.user), Decimal("900.00"))
+
+    def test_withdrawal_below_minimum_rejected(self):
+        from django.core.exceptions import ValidationError
+        from payments.models import WalletEntry, WithdrawalRequest
+        from payments.services import create_withdrawal_request
+
+        # Credit 1000 BDT
+        WalletEntry.objects.create(
+            user=self.user,
+            amount=Decimal("1000.00"),
+            reason=WalletEntry.Reason.COURSE_SALE,
+        )
+
+        # Minimum is 500 BDT, try 300
+        with self.assertRaises(ValidationError):
+            create_withdrawal_request(
+                user=self.user,
+                amount=Decimal("300.00"),
+                method=WithdrawalRequest.Method.BKASH,
+                account_details="01700000000",
+            )
+
+    def test_withdrawal_above_balance_rejected(self):
+        from django.core.exceptions import ValidationError
+        from payments.models import WalletEntry, WithdrawalRequest
+        from payments.services import create_withdrawal_request
+
+        # Credit 600 BDT
+        WalletEntry.objects.create(
+            user=self.user,
+            amount=Decimal("600.00"),
+            reason=WalletEntry.Reason.COURSE_SALE,
+        )
+
+        # Try to withdraw 700 BDT
+        with self.assertRaises(ValidationError):
+            create_withdrawal_request(
+                user=self.user,
+                amount=Decimal("700.00"),
+                method=WithdrawalRequest.Method.BKASH,
+                account_details="01700000000",
+            )
+
+    def test_withdrawal_happy_path_and_reversal(self):
+        from payments.models import WalletEntry, WithdrawalRequest
+        from payments.services import (
+            create_withdrawal_request,
+            get_wallet_balance,
+            reject_withdrawal_request,
+        )
+
+        # Credit 1000 BDT
+        WalletEntry.objects.create(
+            user=self.user,
+            amount=Decimal("1000.00"),
+            reason=WalletEntry.Reason.COURSE_SALE,
+        )
+        self.assertEqual(get_wallet_balance(self.user), Decimal("1000.00"))
+
+        # Request 600 BDT
+        req = create_withdrawal_request(
+            user=self.user,
+            amount=Decimal("600.00"),
+            method=WithdrawalRequest.Method.BKASH,
+            account_details="01711111111",
+        )
+        self.assertEqual(req.status, WithdrawalRequest.Status.PENDING)
+        self.assertEqual(get_wallet_balance(self.user), Decimal("400.00"))
+
+        # Reject request
+        rejected = reject_withdrawal_request(req.id, note="Invalid mobile number")
+        self.assertEqual(rejected.status, WithdrawalRequest.Status.REJECTED)
+        self.assertEqual(rejected.admin_note, "Invalid mobile number")
+        self.assertEqual(get_wallet_balance(self.user), Decimal("1000.00"))
+
+    def test_withdrawal_mark_paid_only_changes_status(self):
+        from payments.models import WalletEntry, WithdrawalRequest
+        from payments.services import (
+            create_withdrawal_request,
+            get_wallet_balance,
+            mark_withdrawal_paid,
+        )
+
+        WalletEntry.objects.create(
+            user=self.user,
+            amount=Decimal("1000.00"),
+            reason=WalletEntry.Reason.COURSE_SALE,
+        )
+
+        req = create_withdrawal_request(
+            user=self.user,
+            amount=Decimal("500.00"),
+            method=WithdrawalRequest.Method.NAGAD,
+            account_details="01811111111",
+        )
+        self.assertEqual(get_wallet_balance(self.user), Decimal("500.00"))
+
+        paid = mark_withdrawal_paid(req.id, note="Trx ID: NAGAD-12345")
+        self.assertEqual(paid.status, WithdrawalRequest.Status.PAID)
+        self.assertEqual(paid.admin_note, "Trx ID: NAGAD-12345")
+        # Balance must remain 500 (hold was already deducted upon request creation)
+        self.assertEqual(get_wallet_balance(self.user), Decimal("500.00"))
+
+    def test_wallet_overview_and_withdrawal_views(self):
+        from payments.models import WalletEntry, WithdrawalRequest
+
+        WalletEntry.objects.create(
+            user=self.user,
+            amount=Decimal("1200.00"),
+            reason=WalletEntry.Reason.COURSE_SALE,
+        )
+
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse("payments:wallet"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "1200.00")
+
+        # Submit withdrawal request via view
+        post_resp = self.client.post(
+            reverse("payments:withdrawals"),
+            {
+                "amount": "600",
+                "method": WithdrawalRequest.Method.BKASH,
+                "account_details": "01722222222",
+            },
+            follow=True,
+        )
+        self.assertEqual(post_resp.status_code, 200)
+        self.assertTrue(
+            WithdrawalRequest.objects.filter(user=self.user, amount=Decimal("600.00")).exists()
+        )
+
+
