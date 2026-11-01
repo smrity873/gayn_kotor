@@ -1,11 +1,14 @@
 from decimal import Decimal
 from django.conf import settings
-from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
+from notifications.services import notify
 from .gateways.base import PaymentGateway, PaymentResult
 from .gateways.sandbox import SandboxGateway
-from .models import PaymentOrder
+from .models import PaymentOrder, Wallet, WalletEntry, WithdrawalRequest
 from .registry import get_fulfiller
 
 _GATEWAYS = {
@@ -100,3 +103,148 @@ def complete_order(order: PaymentOrder, result: PaymentResult) -> PaymentOrder:
     else:
         return fail_order(order, reason=result.error_message)
 
+
+# -------------------------------------------------------------------------
+# Wallet Ledger & Withdrawals (PRD 7.7 & 7.8)
+# -------------------------------------------------------------------------
+
+def get_wallet_balance(user) -> Decimal:
+    """
+    PRD 7.7: Returns the current wallet balance for the user,
+    calculated as the sum of signed WalletEntry amounts.
+    """
+    if not user or not user.is_authenticated:
+        return Decimal("0.00")
+    total = WalletEntry.objects.filter(user=user).aggregate(
+        total=models.Sum("amount")
+    )["total"]
+    return total if total is not None else Decimal("0.00")
+
+
+@transaction.atomic
+def create_withdrawal_request(
+    user,
+    amount: Decimal,
+    method: str,
+    account_details: str,
+) -> WithdrawalRequest:
+    """
+    PRD 7.8:
+    Creates a withdrawal request.
+    Validates minimum amount (WITHDRAW_MIN_BDT) and that amount <= current balance.
+    Locks user's Wallet to prevent concurrent double-withdrawal race conditions.
+    Writes a negative withdrawal_hold WalletEntry atomically.
+    """
+    min_amount = getattr(settings, "WITHDRAW_MIN_BDT", Decimal("500"))
+    if amount < min_amount:
+        raise ValidationError(
+            _("Minimum withdrawal amount is %(min)s BDT.") % {"min": min_amount}
+        )
+
+    # Lock wallet anchor for user
+    Wallet.objects.select_for_update().get_or_create(user=user)
+
+    balance = get_wallet_balance(user)
+    if amount > balance:
+        raise ValidationError(
+            _("Withdrawal amount (%(amount)s BDT) exceeds available balance (%(bal)s BDT).")
+            % {"amount": amount, "bal": balance}
+        )
+
+    req = WithdrawalRequest.objects.create(
+        user=user,
+        amount=amount,
+        method=method,
+        account_details=account_details,
+        status=WithdrawalRequest.Status.PENDING,
+    )
+
+    # Append negative hold entry to financial ledger
+    WalletEntry.objects.create(
+        user=user,
+        amount=-amount,
+        reason=WalletEntry.Reason.WITHDRAWAL_HOLD,
+        reference=f"withdrawal:{req.id}",
+    )
+
+    notify(
+        user=user,
+        message=_(
+            "Your withdrawal request of %(amount)s BDT via %(method)s is pending review."
+        )
+        % {"amount": amount, "method": req.get_method_display()},
+        link="/payments/wallet/",
+    )
+
+    return req
+
+
+@transaction.atomic
+def reject_withdrawal_request(req_id: int, note: str = "") -> WithdrawalRequest:
+    """
+    PRD 7.8:
+    Rejects a pending withdrawal request and creates a withdrawal_reversal WalletEntry.
+    Idempotent: does nothing if not pending.
+    """
+    req = WithdrawalRequest.objects.select_for_update().get(id=req_id)
+    if req.status != WithdrawalRequest.Status.PENDING:
+        return req
+
+    # Lock wallet anchor
+    Wallet.objects.select_for_update().get_or_create(user=req.user)
+
+    req.status = WithdrawalRequest.Status.REJECTED
+    req.admin_note = note
+    req.decided_at = timezone.now()
+    req.save(update_fields=["status", "admin_note", "decided_at"])
+
+    # Reverse the hold
+    WalletEntry.objects.create(
+        user=req.user,
+        amount=req.amount,
+        reason=WalletEntry.Reason.WITHDRAWAL_REVERSAL,
+        reference=f"withdrawal:{req.id}:reversal",
+    )
+
+    notify(
+        user=req.user,
+        message=_(
+            "Your withdrawal request of %(amount)s BDT was rejected. The funds have been returned to your wallet. Note: %(note)s"
+        )
+        % {"amount": req.amount, "note": note or "None"},
+        link="/payments/wallet/",
+    )
+
+    return req
+
+
+@transaction.atomic
+def mark_withdrawal_paid(req_id: int, note: str = "") -> WithdrawalRequest:
+    """
+    PRD 7.8:
+    Marks a pending withdrawal request as paid. Status update only.
+    Idempotent: does nothing if not pending.
+    """
+    req = WithdrawalRequest.objects.select_for_update().get(id=req_id)
+    if req.status != WithdrawalRequest.Status.PENDING:
+        return req
+
+    req.status = WithdrawalRequest.Status.PAID
+    req.admin_note = note
+    req.decided_at = timezone.now()
+    req.save(update_fields=["status", "admin_note", "decided_at"])
+
+    notify(
+        user=req.user,
+        message=_(
+            "Your withdrawal of %(amount)s BDT has been sent to your %(method)s account (%(details)s)."
+        )
+        % {
+            "amount": req.amount,
+            "method": req.get_method_display(),
+            "details": req.account_details,
+        },
+        link="/payments/wallet/",
+    )
+
+    return req
