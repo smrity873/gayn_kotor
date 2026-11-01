@@ -31,7 +31,7 @@ def home(request):
     latest_courses = []
     if enable_courses:
         latest_courses = list(
-            Course.objects.filter(is_published=True)
+            Course.objects.filter(status=Course.Status.PUBLISHED)
             .select_related("instructor")
             .order_by("-created_at")[:4]
         )

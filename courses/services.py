@@ -23,7 +23,7 @@ def can_sell(user) -> bool:
         return False
     if user.is_superuser:
         return True
-    if not user.email_verified:
+    if not (getattr(user, "is_email_verified", False) or getattr(user, "is_verified", False)):
         return False
     if user.role == User.Role.LECTURER:
         return True
