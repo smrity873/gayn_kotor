@@ -1,31 +1,153 @@
 {% extends "base.html" %}
-{% block title %}Explore Courses{% endblock %}
+
+{% block title %}Explore Video Courses - {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
-<section class="mx-auto max-w-7xl px-6 py-10">
-    <h1 class="mb-8 text-3xl font-bold text-forest dark:text-grass-light">Available Courses</h1>
-    
-    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+<section class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+
+    <!-- Header & Action -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <span class="rounded-full bg-forest/10 px-3 py-0.5 text-xs font-bold text-forest dark:bg-forest/20 dark:text-grass-light">Learning Catalog</span>
+            <h1 class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">Video Courses</h1>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+                Peer-led and lecturer-taught courses designed for your academic and practical success.
+            </p>
+        </div>
+        {% if can_sell %}
+        <div class="flex items-center gap-3">
+            <a href="{% url 'courses:my_courses' %}" class="rounded-xl border border-fern/30 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-canvas-dark/5 dark:text-gray-200 dark:border-fern-dark">
+                My Courses & Earnings
+            </a>
+            <a href="{% url 'courses:course_create' %}" class="rounded-xl bg-forest px-5 py-2 text-sm font-bold text-white shadow-md hover:bg-forest-deep transition">
+                + Create Course
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filters & Search Bar -->
+    <form method="get" class="mt-8 rounded-2xl border border-fern/20 bg-card p-4 shadow-sm dark:border-fern-dark dark:bg-card-dark">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <!-- Search Query -->
+            <div class="lg:col-span-2">
+                <input type="text" name="q" value="{{ search_query }}"
+                    placeholder="Search by title, topic, or instructor..."
+                    class="w-full rounded-xl border border-fern/30 bg-canvas dark:bg-canvas-dark px-4 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-forest focus:ring-2 focus:ring-forest/20">
+            </div>
+
+            <!-- Category -->
+            <div>
+                <select name="category" onchange="this.form.submit()"
+                    class="w-full rounded-xl border border-fern/30 bg-canvas dark:bg-canvas-dark px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-forest">
+                    <option value="">All Categories</option>
+                    {% for cat_val, cat_label in categories %}
+                    <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Pricing Filter -->
+            <div>
+                <select name="pricing" onchange="this.form.submit()"
+                    class="w-full rounded-xl border border-fern/30 bg-canvas dark:bg-canvas-dark px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-forest">
+                    <option value="">All Pricing</option>
+                    <option value="premium" {% if selected_pricing == "premium" %}selected{% endif %}>Paid Courses</option>
+                    <option value="free" {% if selected_pricing == "free" %}selected{% endif %}>Free Courses</option>
+                </select>
+            </div>
+
+            <!-- Sort By -->
+            <div>
+                <select name="sort" onchange="this.form.submit()"
+                    class="w-full rounded-xl border border-fern/30 bg-canvas dark:bg-canvas-dark px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-forest">
+                    <option value="newest" {% if selected_sort == "newest" %}selected{% endif %}>Newest</option>
+                    <option value="price_asc" {% if selected_sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+                    <option value="price_desc" {% if selected_sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+                    <option value="duration" {% if selected_sort == "duration" %}selected{% endif %}>Longest Duration</option>
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <!-- Course Cards Grid -->
+    <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {% for course in courses %}
-        <div class="overflow-hidden rounded-2xl border border-fern/20 bg-card shadow-sm transition hover:shadow-md dark:border-fern-dark dark:bg-card-dark">
-            {% if course.thumbnail %}
-            <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" class="h-48 w-full object-cover">
-            {% else %}
-            <div class="flex h-48 w-full items-center justify-center bg-gray-200 text-gray-500 dark:bg-gray-800">No Cover</div>
-            {% endif %}
-            
-            <div class="p-5">
-                <h2 class="mb-2 text-xl font-semibold text-gray-900 dark:text-white">{{ course.title }}</h2>
-                <p class="mb-4 text-sm text-gray-600 dark:text-gray-300">{{ course.description|truncatewords:15 }}</p>
+        <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-fern/20 bg-card shadow-sm transition hover:shadow-md dark:border-fern-dark dark:bg-card-dark">
+            <div>
+                <div class="relative h-44 w-full bg-gray-100 dark:bg-gray-800">
+                    {% if course.thumbnail %}
+                    <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" class="h-full w-full object-cover">
+                    {% else %}
+                    <div class="flex h-full w-full items-center justify-center text-xs text-gray-400">
+                        <svg class="h-10 w-10 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                    </div>
+                    {% endif %}
+                    <span class="absolute top-3 left-3 rounded-full bg-forest/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm backdrop-blur-sm">
+                        {{ course.get_category_display }}
+                    </span>
+                    <span class="absolute bottom-2 right-2 rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
+                        {{ course.total_duration_minutes }} min ({{ course.lessons.count }} lessons)
+                    </span>
+                </div>
+
+                <div class="p-5">
+                    <h2 class="text-base font-bold text-gray-900 dark:text-white line-clamp-2">
+                        <a href="{% url 'courses:course_detail' course.id %}" class="hover:text-forest dark:hover:text-grass-light transition">
+                            {{ course.title }}
+                        </a>
+                    </h2>
+                    <p class="mt-1 text-xs text-gray-500">Instructor: @{{ course.instructor.username }}</p>
+                    <p class="mt-2 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{{ course.description }}</p>
+                </div>
+            </div>
+
+            <div class="border-t border-fern/10 p-5 pt-3">
                 <div class="flex items-center justify-between">
-                    <span class="font-bold text-forest dark:text-grass-light">BDT {{ course.price }}</span>
-                    <a href="#" class="rounded-lg bg-forest px-4 py-2 text-sm font-bold text-white transition hover:bg-forest-deep">View Course</a>
+                    <div>
+                        {% if course.price > 0 %}
+                        <span class="text-lg font-black text-forest dark:text-grass-light">৳{{ course.price }}</span>
+                        <span class="text-[10px] text-gray-500">BDT</span>
+                        {% else %}
+                        <span class="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">FREE</span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'courses:course_detail' course.id %}"
+                        class="rounded-xl bg-forest px-4 py-2 text-xs font-bold text-white transition hover:bg-forest-deep shadow-sm">
+                        View Course
+                    </a>
                 </div>
             </div>
         </div>
         {% empty %}
-        <p class="col-span-full text-center text-gray-500">No courses available right now.</p>
+        <div class="col-span-full rounded-2xl border border-dashed border-fern/30 p-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+            <p class="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-300">No courses found matching your criteria.</p>
+            <p class="mt-1 text-xs text-gray-500">Try clearing your filters or check back later.</p>
+        </div>
         {% endfor %}
     </div>
+
+    <!-- Pagination -->
+    {% if page.has_other_pages %}
+    <div class="mt-10 flex justify-center gap-2 text-sm">
+        {% if page.has_previous %}
+        <a href="?page={{ page.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_pricing %}&pricing={{ selected_pricing }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}"
+            class="rounded-xl border border-fern/30 px-4 py-2 font-medium text-gray-700 hover:bg-canvas-dark/5 dark:text-gray-200">
+            &larr; Previous
+        </a>
+        {% endif %}
+        <span class="rounded-xl bg-forest px-4 py-2 font-bold text-white">
+            Page {{ page.number }} of {{ page.paginator.num_pages }}
+        </span>
+        {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_pricing %}&pricing={{ selected_pricing }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}"
+            class="rounded-xl border border-fern/30 px-4 py-2 font-medium text-gray-700 hover:bg-canvas-dark/5 dark:text-gray-200">
+            Next &rarr;
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
 </section>
 {% endblock %}

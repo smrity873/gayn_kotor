@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Sandbox - {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-xl px-4 py-12 sm:px-6">
+
+    <!-- Sandbox Simulation Card -->
+    <div class="rounded-3xl border border-amber-300 bg-amber-50/50 p-6 shadow-xl dark:border-amber-700/60 dark:bg-card-dark sm:p-8">
+        
+        <div class="flex items-center justify-between border-b border-amber-200 pb-4 dark:border-amber-800/60">
+            <div class="flex items-center gap-2">
+                <span class="flex h-3 w-3 rounded-full bg-amber-500 animate-pulse"></span>
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Sandbox Payment Gateway</span>
+            </div>
+            <span class="rounded-full bg-amber-200/80 px-2.5 py-0.5 text-[11px] font-semibold text-amber-900 dark:bg-amber-900/60 dark:text-amber-200">Test Mode</span>
+        </div>
+
+        <div class="mt-6 text-center">
+            <p class="text-xs font-semibold text-green-900/60 dark:text-green-100/60">Amount Due</p>
+            <h1 class="mt-1 text-4xl font-extrabold text-green-950 dark:text-green-50">
+                ৳{{ order.amount_bdt }} <span class="text-lg font-medium text-green-900/60 dark:text-green-100/60">BDT</span>
+            </h1>
+            <p class="mt-2 text-sm font-semibold text-green-800 dark:text-green-300">
+                {{ order.get_purpose_display }}
+            </p>
+        </div>
+
+        <div class="mt-6 space-y-2.5 rounded-2xl bg-white/80 p-4 text-xs dark:bg-green-950/40">
+            <div class="flex justify-between">
+                <span class="text-green-900/60 dark:text-green-100/60">Order ID:</span>
+                <span class="font-mono font-semibold">{{ order.id }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-green-900/60 dark:text-green-100/60">Customer:</span>
+                <span class="font-semibold">{{ order.user.get_full_name|default:order.user.username }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-green-900/60 dark:text-green-100/60">Created:</span>
+                <span>{{ order.created_at|date:"d M Y, h:i A" }}</span>
+            </div>
+        </div>
+
+        <p class="mt-5 text-center text-xs text-amber-900/70 dark:text-amber-200/70">
+            This is a mock sandbox environment. No actual money is debited. Select an outcome below to test the callback:
+        </p>
+
+        <form method="post" action="{% url 'payments:sandbox' order.id %}" class="mt-6 space-y-3">
+            {% csrf_token %}
+            <input type="hidden" name="order_id" value="{{ order.id }}">
+
+            <button type="submit" name="action" value="pay"
+                    class="w-full rounded-full bg-emerald-600 py-3 text-center text-sm font-bold text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-700">
+                Pay ৳{{ order.amount_bdt }} BDT (Simulate Success)
+            </button>
+
+            <button type="submit" name="action" value="fail"
+                    class="w-full rounded-full border border-red-300 bg-white/70 py-2.5 text-center text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:bg-card-dark dark:text-red-400 dark:hover:bg-red-950/30">
+                Fail / Cancel Transaction
+            </button>
+        </form>
+
+    </div>
+
+</section>
+{% endblock %}
+

@@ -1,3 +1,4 @@
+from decimal import Decimal
 """
 Django settings for config project.
 
@@ -65,6 +66,8 @@ INSTALLED_APPS = [
     'notes',
     'notifications',
     'courses',
+    'payments',
+    'swaps',
 ]
 
 MIDDLEWARE = [
@@ -76,7 +79,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-        'django.middleware.locale.LocaleMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -92,6 +95,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'credits.context_processors.credit_balance',
+                'core.context_processors.site_name',
             ],
         },
     },
@@ -132,7 +136,7 @@ if db_url:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': unquote(parsed_db.path.lstrip('/')),
+            'NAME': os.getenv('DB_NAME') or unquote(parsed_db.path.lstrip('/')),
             'USER': unquote(parsed_db.username or ''),
             'PASSWORD': unquote(parsed_db.password or ''),
             'HOST': parsed_db.hostname or 'localhost',
@@ -216,9 +220,12 @@ STORAGES = {
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
+_email_backend = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@localhost")
+
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': _email_backend,
     },
 }
 
@@ -231,6 +238,44 @@ LOGOUT_REDIRECT_URL = "core:home"
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
 
-NOTE_ESCALATE_DAYS = 3
-NOTE_AUTOPUBLISH_DAYS = 7
+PRIVATE_MEDIA_ROOT = Path(os.getenv("PRIVATE_MEDIA_ROOT", str(BASE_DIR / "private_media")))
 
+NOTE_ESCALATE_DAYS = int(os.getenv("NOTE_ESCALATE_DAYS", "3"))
+NOTE_AUTOPUBLISH_DAYS = int(os.getenv("NOTE_AUTOPUBLISH_DAYS", "7"))
+NOTE_CR_REMINDER_DAYS = int(os.getenv("NOTE_CR_REMINDER_DAYS", "2"))
+NOTE_REPORT_THRESHOLD = int(os.getenv("NOTE_REPORT_THRESHOLD", "3"))
+NOTE_MAX_REWARDED_RATERS = int(os.getenv("NOTE_MAX_REWARDED_RATERS", "10"))
+NOTE_UNVERIFIED_REWARD_DOWNLOADS = int(os.getenv("NOTE_UNVERIFIED_REWARD_DOWNLOADS", "3"))
+NOTE_MAX_UPLOAD_MB = int(os.getenv("NOTE_MAX_UPLOAD_MB", "20"))
+SITE_NAME = os.getenv("SITE_NAME", "Gayn Kotor")
+SIGNUP_BONUS = int(os.getenv("SIGNUP_BONUS", "30"))
+ALLOWED_EMAIL_DOMAINS = [d.strip().lower() for d in os.getenv("ALLOWED_EMAIL_DOMAINS", "").split(",") if d.strip()]
+
+
+# Payments & Credits Top-up (Phase 3)
+CREDIT_PRICE_BDT = Decimal(os.getenv("CREDIT_PRICE_BDT", "1"))
+CREDIT_TOPUP_MIN = int(os.getenv("CREDIT_TOPUP_MIN", "10"))
+CREDIT_TOPUP_MAX = int(os.getenv("CREDIT_TOPUP_MAX", "5000"))
+PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "sandbox")
+SANDBOX_ALLOWED = os.getenv("SANDBOX_ALLOWED", "True").lower() in ("true", "1", "yes")
+
+# Skill Swap (Phase 5)
+SWAP_DEPOSIT = int(os.getenv("SWAP_DEPOSIT", "10"))
+SWAP_FREE_CANCEL_HOURS = int(os.getenv("SWAP_FREE_CANCEL_HOURS", "24"))
+SWAP_DISPUTE_HOURS = int(os.getenv("SWAP_DISPUTE_HOURS", "24"))
+SWAP_AUTO_RESOLVE_HOURS = int(os.getenv("SWAP_AUTO_RESOLVE_HOURS", "72"))
+SWAP_DEFAULT_DURATION_MIN = int(os.getenv("SWAP_DEFAULT_DURATION_MIN", "60"))
+SWAP_ALLOWED_LINK_DOMAINS = [
+    d.strip().lower()
+    for d in os.getenv("SWAP_ALLOWED_LINK_DOMAINS", "meet.google.com, zoom.us, teams.microsoft.com").split(",")
+    if d.strip()
+]
+
+# Video Courses (Phase 7 flag, gated in Phase 6)
+ENABLE_VIDEO_COURSES = os.getenv("ENABLE_VIDEO_COURSES", "True").lower() in ("true", "1", "yes")
+COURSE_COMMISSION_PERCENT = int(os.getenv("COURSE_COMMISSION_PERCENT", "10"))
+COURSE_VIDEO_MAX_MB = int(os.getenv("COURSE_VIDEO_MAX_MB", "300"))
+COURSE_MAX_TOTAL_MB = int(os.getenv("COURSE_MAX_TOTAL_MB", "2000"))
+COURSE_MIN_BILLABLE_HOURS = float(os.getenv("COURSE_MIN_BILLABLE_HOURS", "0.5"))
+WITHDRAW_MIN_BDT = Decimal(os.getenv("WITHDRAW_MIN_BDT", "500"))
+USE_X_ACCEL_REDIRECT = os.getenv("USE_X_ACCEL_REDIRECT", "False").lower() in ("true", "1", "yes")

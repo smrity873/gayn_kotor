@@ -15,6 +15,7 @@ class CreditLedger(models.Model):
         SWAP_RETURN = "swap_return", _("Skill swap deposit returned")
         SWAP_FORFEIT = "swap_forfeit", _("Skill swap deposit forfeited")
         ADMIN = "admin", _("Admin adjustment")
+        REVERSAL = "reversal", _("Reversal")
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -24,10 +25,21 @@ class CreditLedger(models.Model):
     amount = models.IntegerField(_("amount"))
     reason = models.CharField(max_length=20, choices=Reason.choices)
     description = models.CharField(max_length=200, blank=True)
+    reverses = models.OneToOneField(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reversed_by",
+        help_text=_("The ledger entry that this entry reverses."),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "created_at"]),
+        ]
 
     def __str__(self):
         return f"{self.user} {self.amount:+d} ({self.reason})"

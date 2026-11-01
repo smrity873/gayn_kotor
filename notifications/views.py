@@ -1,10 +1,25 @@
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .models import Notification
+
+
+@login_required
+def notification_list(request):
+    notifications_qs = request.user.notifications.all()
+    paginator = Paginator(notifications_qs, 20)
+    page_number = request.GET.get("page")
+    page = paginator.get_page(page_number)
+    unread_cnt = request.user.notifications.filter(is_read=False).count()
+    return render(
+        request,
+        "notifications/notification_list.html",
+        {"page": page, "unread_count": unread_cnt},
+    )
 
 
 @login_required
@@ -41,4 +56,6 @@ def open_notification(request, pk):
 @require_POST
 def mark_all_read(request):
     request.user.notifications.filter(is_read=False).update(is_read=True)
-    return JsonResponse({"ok": True})
+    if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("format") == "json":
+        return JsonResponse({"ok": True})
+    return redirect(request.META.get("HTTP_REFERER", "notifications:list"))

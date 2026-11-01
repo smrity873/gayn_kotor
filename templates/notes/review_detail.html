@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Review: {{ note.title }} - Gayn Kotor{% endblock %}
+{% block title %}Review: {{ note.title }} - {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
 <section class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -28,7 +28,15 @@
         <div class="space-y-5">
 
             <div class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
-                <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800 dark:bg-green-900/50 dark:text-green-200">{{ note.course_code }}</span>
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800 dark:bg-green-900/50 dark:text-green-200">{{ note.course_code }}</span>
+                    {% if note.escalated_at or note.is_overdue %}
+                    <span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Escalated</span>
+                    {% endif %}
+                    {% if note.days_left_to_autopublish is not None %}
+                    <span class="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">Auto-publishes in {{ note.days_left_to_autopublish }} day{{ note.days_left_to_autopublish|pluralize }}</span>
+                    {% endif %}
+                </div>
                 <h1 class="mt-3 text-2xl font-bold leading-snug text-green-900 dark:text-green-50">{{ note.title }}</h1>
                 {% if note.description %}
                 <p class="mt-2 text-sm text-green-900/70 dark:text-green-100/70">{{ note.description }}</p>

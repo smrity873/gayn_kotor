@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ note.title }} - Gayn Kotor{% endblock %}
+{% block title %}{{ note.title }} - {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
 <style>
@@ -150,10 +150,16 @@
 
                 {% if can_afford is False %}
                 <div class="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
-                    You do not have enough nuts yet. Share your own note and earn 10 nuts.
-                    <a href="{% url 'credits:hollow' %}" class="font-semibold underline">Open my hollow</a>
+                    <p>You do not have enough nuts yet. Share your own note, or buy nuts to unlock immediately.</p>
+                    <div class="mt-2 flex items-center gap-3 text-xs">
+                        <a href="{% url 'credits:hollow' %}" class="font-semibold underline">Open my hollow</a>
+                        <span class="text-amber-900/40 dark:text-amber-100/40">·</span>
+                        <a href="{% url 'payments:buy_credits' %}" class="font-bold underline text-amber-800 dark:text-amber-300">Buy nuts</a>
+                    </div>
                 </div>
-                <button type="button" disabled class="mt-4 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-gray-300 py-3 font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-400">Not enough nuts</button>
+                <a href="{% url 'payments:buy_credits' %}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber-500 py-3 font-semibold text-white shadow-md shadow-amber-500/30 transition hover:bg-amber-600">
+                    Buy nuts to unlock
+                </a>
                 {% else %}
                 <form method="post" action="{% url 'notes:download' note.pk %}" class="mt-4">
                     {% csrf_token %}
@@ -163,6 +169,78 @@
                     </button>
                 </form>
                 {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Report Note (for non-owners who can view) -->
+            {% if user.is_authenticated and not is_owner and note.status != 'removed' %}
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                {% if has_reported %}
+                <p class="text-xs text-green-900/60 dark:text-green-100/60 flex items-center gap-1.5">
+                    <svg class="h-4 w-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+                    You have reported this note. Thank you for keeping our community safe.
+                </p>
+                {% else %}
+                <details class="group text-sm">
+                    <summary class="flex cursor-pointer items-center justify-between text-xs font-semibold text-green-900/70 hover:text-red-600 dark:text-green-100/70 dark:hover:text-red-400">
+                        <span class="flex items-center gap-1.5">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 0 1 2-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 0 0-2 2Zm9-13.5V9"/></svg>
+                            Report this note
+                        </span>
+                        <span class="text-xs transition group-open:rotate-180">&#9662;</span>
+                    </summary>
+                    <form method="post" action="{% url 'notes:report' note.pk %}" class="mt-3 space-y-3 pt-2 border-t border-green-100 dark:border-green-900/60">
+                        {% csrf_token %}
+                        <div>
+                            <label class="block text-xs font-semibold text-green-900/70 dark:text-green-100/70">Reason</label>
+                            <select name="reason" class="mt-1 w-full rounded-xl border border-green-200 bg-white px-3 py-1.5 text-xs text-green-950 outline-none focus:border-green-500 dark:border-green-800 dark:bg-canvas-dark dark:text-green-50">
+                                {% for val, label in report_reasons %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-green-900/70 dark:text-green-100/70">Details (optional)</label>
+                            <textarea name="details" rows="2" maxlength="500" placeholder="Describe the issue..."
+                                      class="mt-1 w-full rounded-xl border border-green-200 bg-white px-3 py-1.5 text-xs text-green-950 outline-none focus:border-green-500 dark:border-green-800 dark:bg-canvas-dark dark:text-green-50"></textarea>
+                        </div>
+                        <button type="submit" class="w-full rounded-full border border-red-300 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30">
+                            Submit Report
+                        </button>
+                    </form>
+                </details>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Teacher Removal Action -->
+            {% if can_remove and note.status != 'removed' %}
+            <div class="rounded-2xl border border-red-200 bg-card p-4 shadow-sm dark:border-red-900/60 dark:bg-card-dark">
+                <details class="group text-sm">
+                    <summary class="flex cursor-pointer items-center justify-between text-xs font-bold text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                        <span class="flex items-center gap-1.5">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+                            Class Teacher / Moderator: Remove Note
+                        </span>
+                        <span class="text-xs transition group-open:rotate-180">&#9662;</span>
+                    </summary>
+                    <form method="post" action="{% url 'notes:remove' note.pk %}" class="mt-3 space-y-3 pt-2 border-t border-red-100 dark:border-red-900/60">
+                        {% csrf_token %}
+                        <div>
+                            <label class="block text-xs font-semibold text-red-900 dark:text-red-200">Reason for removal (required)</label>
+                            <input type="text" name="reason" required placeholder="e.g. Inappropriate content, copyright infringement"
+                                   class="mt-1 w-full rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs text-green-950 outline-none focus:border-red-500 dark:border-red-900 dark:bg-canvas-dark dark:text-green-50">
+                        </div>
+                        <label class="flex items-center gap-2 text-xs text-red-800 dark:text-red-300">
+                            <input type="checkbox" name="reverse_reward" value="1" class="rounded border-red-300 text-red-600 focus:ring-red-500">
+                            Reverse uploader's reward (-10 nuts)
+                        </label>
+                        <button type="submit" onclick="return confirm('Are you sure you want to remove this note?');"
+                                class="w-full rounded-full bg-red-600 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700">
+                            Confirm Removal
+                        </button>
+                    </form>
+                </details>
             </div>
             {% endif %}
         </div>

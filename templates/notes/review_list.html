@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Review notes - Gayn Kotor{% endblock %}
+{% block title %}Review notes - {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
 <section class="mx-auto max-w-4xl px-6 py-10">
@@ -28,6 +28,12 @@
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="rounded-full bg-green-100 px-3 py-0.5 text-xs font-bold text-green-800 dark:bg-green-900/50 dark:text-green-200">{{ note.course_code }}</span>
                     <span class="text-xs text-green-900/60 dark:text-green-100/60">Semester {{ note.semester }}</span>
+                    {% if note.escalated_at or note.is_overdue %}
+                    <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Escalated</span>
+                    {% endif %}
+                    {% if note.days_left_to_autopublish is not None %}
+                    <span class="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">Auto-publishes in {{ note.days_left_to_autopublish }} day{{ note.days_left_to_autopublish|pluralize }}</span>
+                    {% endif %}
                 </div>
                 <h2 class="mt-1 truncate text-lg font-bold text-green-900 dark:text-green-50">{{ note.title }}</h2>
                 <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-green-900/60 dark:text-green-100/60">

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Notes - Gayn Kotor{% endblock %}
+{% block title %}Notes - {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
 <section class="mx-auto max-w-6xl px-6 py-10">
@@ -98,8 +98,11 @@
                     </span>
                 </div>
 
-                {% if tab == 'mine' and note.status == 'rejected' and note.rejection_reason %}
-                <p class="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-300">Reason: {{ note.rejection_reason }}</p>
+                {% if tab == 'mine' and note.status == 'rejected' %}
+                <div class="mt-3 flex items-center justify-between gap-2 rounded-xl bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-300">
+                    <span class="truncate">Reason: {{ note.rejection_reason|default:"No reason provided" }}</span>
+                    <a href="{% url 'notes:appeal' note.pk %}" class="shrink-0 rounded-full bg-red-600 px-3 py-1 font-bold text-white shadow-sm transition hover:bg-red-700">Appeal</a>
+                </div>
                 {% endif %}
                 {% if tab == 'mine' and note.status == 'pending' %}
                 <p class="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">Waiting for your CR to review it.</p>

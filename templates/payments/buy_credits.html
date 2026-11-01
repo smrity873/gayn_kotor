@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Buy Nuts - {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+
+    <div class="flex flex-col gap-1">
+        <div class="flex items-center gap-2">
+            <span class="rounded-full bg-amber-100 px-3 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Nut Top-Up</span>
+            <a href="{% url 'payments:order_list' %}" class="text-xs font-semibold text-green-700 hover:underline dark:text-green-300">View Order History &rarr;</a>
+        </div>
+        <h1 class="mt-2 text-3xl font-bold text-green-900 dark:text-green-50">Top Up Your Nut Hollow</h1>
+        <p class="text-green-900/70 dark:text-green-100/70">
+            Nuts let you unlock and download peer-reviewed lecture notes. 1 BDT = 1 Nut.
+        </p>
+    </div>
+
+    <!-- Preset Packs -->
+    <h2 class="mt-8 text-xl font-bold text-green-900 dark:text-green-50">Choose a Pack</h2>
+    <div class="mt-4 grid gap-6 sm:grid-cols-3">
+        {% for pack in packs %}
+        <div class="relative flex flex-col justify-between rounded-2xl border border-green-200 bg-card p-6 shadow-sm transition hover:shadow-md dark:border-green-800 dark:bg-card-dark">
+            {% if pack == 100 %}
+            <span class="absolute -top-3 right-4 rounded-full bg-green-600 px-3 py-0.5 text-[11px] font-bold text-white shadow-sm">Popular</span>
+            {% endif %}
+            <div>
+                <div class="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21c-3.6-1.8-5.5-4.6-5.5-8h11c0 3.4-1.9 6.2-5.5 8Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M5.5 12.5c0-3 2.7-5 6.5-5s6.5 2 6.5 5Z"/><path stroke-linecap="round" d="M12 7.5V4"/></svg>
+                    <span class="text-2xl font-bold">{{ pack }} Nuts</span>
+                </div>
+                <p class="mt-2 text-sm text-green-900/60 dark:text-green-100/60">Unlock up to {{ pack|floatformat:0 }} notes.</p>
+                <p class="mt-4 text-3xl font-extrabold text-green-950 dark:text-green-50">
+                    ৳{{ pack }} <span class="text-xs font-normal text-green-900/60 dark:text-green-100/60">BDT</span>
+                </p>
+            </div>
+            <form method="post" action="{% url 'payments:buy_credits' %}" class="mt-6">
+                {% csrf_token %}
+                <input type="hidden" name="nuts" value="{{ pack }}">
+                <button type="submit" class="w-full rounded-full bg-green-600 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">
+                    Buy {{ pack }} Nuts
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Custom Amount -->
+    <div class="mt-10 rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark sm:p-8">
+        <h2 class="text-xl font-bold text-green-900 dark:text-green-50">Or Enter Custom Amount</h2>
+        <p class="mt-1 text-sm text-green-900/70 dark:text-green-100/70">
+            Min {{ min_nuts }} nuts, max {{ max_nuts }} nuts.
+        </p>
+
+        <form method="post" action="{% url 'payments:buy_credits' %}" class="mt-6 max-w-md space-y-4">
+            {% csrf_token %}
+            <div>
+                <label for="custom_nuts" class="block text-sm font-semibold text-green-900 dark:text-green-100">
+                    Number of Nuts
+                </label>
+                <div class="relative mt-2">
+                    <input type="number" id="custom_nuts" name="nuts" min="{{ min_nuts }}" max="{{ max_nuts }}" required
+                           placeholder="e.g. 75"
+                           class="w-full rounded-xl border border-green-200 bg-white py-3 pl-4 pr-16 text-green-950 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/30 dark:border-green-800 dark:bg-canvas-dark dark:text-green-50">
+                    <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs font-bold text-green-900/50 dark:text-green-100/50">
+                        NUTS
+                    </span>
+                </div>
+            </div>
+
+            <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber-500 py-3 font-semibold text-white shadow-md shadow-amber-500/30 transition hover:bg-amber-600">
+                Proceed to Payment
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/></svg>
+            </button>
+        </form>
+    </div>
+
+</section>
+{% endblock %}
+

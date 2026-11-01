@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}My Courses & Earnings - {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+
+    <!-- Header & Action -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <span class="rounded-full bg-forest/10 px-3 py-0.5 text-xs font-bold text-forest dark:bg-forest/20 dark:text-grass-light">Instructor Studio</span>
+            <h1 class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">My Courses & Earnings</h1>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+                Manage your video courses, lessons, pricing tiers, and track revenue.
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'payments:wallet' %}" class="rounded-xl border border-fern/30 bg-card px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-canvas-dark/5 dark:text-gray-200 dark:border-fern-dark dark:bg-card-dark">
+                Wallet Ledger (৳{{ wallet_balance|floatformat:2 }})
+            </a>
+            <a href="{% url 'courses:course_create' %}" class="rounded-xl bg-forest px-5 py-2.5 text-sm font-bold text-white shadow-md hover:bg-forest-deep transition">
+                + Create New Course
+            </a>
+        </div>
+    </div>
+
+    <!-- Earnings Summary Cards -->
+    <div class="mt-8 grid gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl border border-fern/20 bg-card p-5 shadow-sm dark:border-fern-dark dark:bg-card-dark">
+            <span class="text-xs font-semibold uppercase text-gray-500">Available Wallet Balance</span>
+            <p class="mt-2 text-3xl font-extrabold text-forest dark:text-grass-light">
+                ৳{{ wallet_balance|floatformat:2 }} <span class="text-xs font-normal text-gray-500">BDT</span>
+            </p>
+            <a href="{% url 'payments:wallet' %}" class="mt-3 inline-block text-xs font-semibold text-forest hover:underline dark:text-grass-light">
+                Request Payout &rarr;
+            </a>
+        </div>
+
+        <div class="rounded-2xl border border-fern/20 bg-card p-5 shadow-sm dark:border-fern-dark dark:bg-card-dark">
+            <span class="text-xs font-semibold uppercase text-gray-500">Total Lifetime Earnings</span>
+            <p class="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">
+                ৳{{ total_earnings|floatformat:2 }} <span class="text-xs font-normal text-gray-500">BDT</span>
+            </p>
+            <p class="mt-3 text-xs text-gray-500">Net after 10% platform commission</p>
+        </div>
+
+        <div class="rounded-2xl border border-fern/20 bg-card p-5 shadow-sm dark:border-fern-dark dark:bg-card-dark">
+            <span class="text-xs font-semibold uppercase text-gray-500">Total Enrollments / Sales</span>
+            <p class="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">
+                {{ total_sales_count }}
+            </p>
+            <p class="mt-3 text-xs text-gray-500">Across all published courses</p>
+        </div>
+    </div>
+
+    <!-- My Courses Table -->
+    <div class="mt-10 rounded-2xl border border-fern/20 bg-card p-6 shadow-sm dark:border-fern-dark dark:bg-card-dark">
+        <div class="flex items-center justify-between border-b border-fern/10 pb-4">
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white">All Courses ({{ courses|length }})</h2>
+        </div>
+
+        <div class="mt-4 divide-y divide-fern/10">
+            {% for c in courses %}
+            <div class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-start gap-4">
+                    <div class="h-16 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+                        {% if c.thumbnail %}
+                        <img src="{{ c.thumbnail.url }}" alt="{{ c.title }}" class="h-full w-full object-cover">
+                        {% else %}
+                        <div class="flex h-full w-full items-center justify-center text-xs text-gray-400">No cover</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">{{ c.title }}</h3>
+                            <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase
+                                {% if c.status == 'published' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200
+                                {% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200{% endif %}">
+                                {{ c.get_status_display }}
+                            </span>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">
+                            {{ c.get_category_display }} · ৳{{ c.price }} BDT · {{ c.lessons.count }} lessons ({{ c.total_duration_minutes }} min)
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'courses:course_detail' c.id %}" class="rounded-xl border border-fern/30 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-canvas-dark/5 dark:text-gray-200">
+                        View
+                    </a>
+                    <a href="{% url 'courses:course_edit' c.id %}" class="rounded-xl bg-forest px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-forest-deep transition">
+                        Edit & Manage &rarr;
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="py-12 text-center">
+                <p class="text-sm font-semibold text-gray-600 dark:text-gray-300">You haven't created any courses yet.</p>
+                <a href="{% url 'courses:course_create' %}" class="mt-3 inline-block rounded-xl bg-forest px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-forest-deep">
+                    Create Your First Course
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</section>
+{% endblock %}
+

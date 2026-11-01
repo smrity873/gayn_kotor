@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 {% load static %}
 
@@ -10,172 +9,367 @@
     #game-container {
         position: relative;
         width: 100%;
-        height: calc(100vh - 4.5rem);
-        min-height: 520px;
+        height: 520px;
+        max-height: 70vh;
         overflow: hidden;
-        background: #183a20;
+        background: #142e1b;
         isolation: isolate;
+        border-radius: 0 0 1.5rem 1.5rem;
     }
 
-    #nut-hollow-video {
-        position: absolute;
-        inset: 0;
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-        background: #183a20;
-    }
-
-    #nut-hollow-video:focus {
-        outline: none;
-    }
-
-    #video-error {
-        display: none;
-        position: absolute;
-        inset: 0;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        color: white;
-        text-align: center;
-        font: 16px/1.6 sans-serif;
-        background: #183a20;
+    @media (max-width: 768px) {
+        #game-container {
+            height: 340px;
+            min-height: 280px;
+        }
     }
 
     #replay-animation {
         position: absolute;
-        z-index: 4;
-        right: 20px;
-        bottom: 20px;
-        padding: 10px 17px;
-        border: 1px solid rgba(255,255,255,.5);
-        border-radius: 999px;
-        background: rgba(20, 45, 24, .78);
-        color: white;
-        font: 600 14px/1.4 sans-serif;
+        z-index: 20;
+        right: 16px;
+        bottom: 16px;
+        padding: 8px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 9999px;
+        background: rgba(18, 48, 25, 0.85);
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
         backdrop-filter: blur(8px);
+        transition: background 0.2s, transform 0.1s;
     }
 
     #replay-animation:hover {
-        background: rgba(30, 75, 36, .95);
+        background: rgba(30, 80, 40, 0.95);
+        transform: scale(1.03);
     }
 
-    @media (max-width: 1023px) {
-        #game-container {
-            height: auto;
-            min-height: 0;
-            aspect-ratio: 16 / 9;
-        }
+    #replay-animation:active {
+        transform: scale(0.97);
     }
 
-    @media (max-width: 600px) {
-        #replay-animation {
-            right: 10px;
-            bottom: 10px;
-            padding: 8px 12px;
-            font-size: 12px;
+    /* Keyframes for Squirrel and Scene */
+    @keyframes tailSway {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(6deg); }
+    }
+
+    .tail-sway {
+        transform-origin: 485px 380px;
+        animation: tailSway 3s ease-in-out infinite;
+    }
+
+    @keyframes squirrelHop {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        30% { transform: translate(-30px, -45px) scale(1.05); }
+        55% { transform: translate(-60px, 0) scale(0.95, 1.05); }
+        80% { transform: translate(-30px, -20px) scale(1.02); }
+    }
+
+    .squirrel-bounce {
+        animation: squirrelHop 1s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    @keyframes squirrelRunToHollow {
+        0% { transform: translate(0, 0); }
+        40% { transform: translate(-120px, -20px); }
+        60% { transform: translate(-120px, -20px); }
+        100% { transform: translate(0, 0); }
+    }
+
+    .squirrel-deposit {
+        animation: squirrelRunToHollow 1.2s ease-in-out;
+    }
+
+    @keyframes squirrelRunFromHollow {
+        0% { transform: translate(0, 0); }
+        35% { transform: translate(-120px, -15px); }
+        65% { transform: translate(-120px, -15px); }
+        100% { transform: translate(0, 0); }
+    }
+
+    .squirrel-retrieve {
+        animation: squirrelRunFromHollow 1.2s ease-in-out;
+    }
+
+    @keyframes sparkleBurst {
+        0% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+        50% { opacity: 1; transform: scale(1.2) rotate(90deg); }
+        100% { opacity: 0; transform: scale(1.5) rotate(180deg); }
+    }
+
+    .sparkle-anim {
+        animation: sparkleBurst 1s ease-out forwards;
+    }
+
+    @keyframes nutFlyIn {
+        0% { opacity: 1; transform: translate(0, 0) scale(1); }
+        70% { opacity: 1; transform: translate(-120px, -60px) scale(1.1); }
+        100% { opacity: 0; transform: translate(-160px, -40px) scale(0.8); }
+    }
+
+    .nut-flying-in {
+        animation: nutFlyIn 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    }
+
+    @keyframes nutFlyOut {
+        0% { opacity: 0; transform: translate(-160px, -40px) scale(0.8); }
+        40% { opacity: 1; transform: translate(-120px, -70px) scale(1.1); }
+        100% { opacity: 0; transform: translate(60px, -30px) scale(0.6); }
+    }
+
+    .nut-flying-out {
+        animation: nutFlyOut 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    }
+
+    /* Accessibility: Reduced motion skips to final state */
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
         }
     }
 </style>
 
 <section>
     <div id="game-container">
+        <!-- SVG Nut Hollow Scene -->
+        <svg id="hollow-scene" viewBox="0 0 800 500" class="w-full h-full select-none" preserveAspectRatio="xMidYMid meet" aria-label="Nut Hollow animated scene">
+            <defs>
+                <!-- Sky gradient -->
+                <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#194226" />
+                    <stop offset="60%" stop-color="#245a35" />
+                    <stop offset="100%" stop-color="#3b7a4a" />
+                </linearGradient>
 
-        <video
-            id="nut-hollow-video"
-            autoplay
-            muted
-            loop
-            playsinline
-            preload="auto"
-            disablepictureinpicture
-            aria-label="Nut Hollow animated squirrel adventure"
-        >
-            <source
-                src="{% static 'images/video.mp4' %}"
-                type="video/mp4"
-            >
-            Your browser does not support HTML5 video.
-        </video>
+                <!-- Distant foliage -->
+                <linearGradient id="hillsGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#1f4b2b" />
+                    <stop offset="100%" stop-color="#163820" />
+                </linearGradient>
 
-        <div id="video-error">
-            Unable to load the animation. Please check the video file path.
-        </div>
+                <!-- Trunk gradient -->
+                <linearGradient id="trunkGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#3e2311" />
+                    <stop offset="35%" stop-color="#5a341a" />
+                    <stop offset="70%" stop-color="#442613" />
+                    <stop offset="100%" stop-color="#2a160a" />
+                </linearGradient>
 
+                <!-- Hollow cavity gradient -->
+                <radialGradient id="hollowDepth" cx="45%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#0a0502" />
+                    <stop offset="60%" stop-color="#140a05" />
+                    <stop offset="100%" stop-color="#2c160b" />
+                </radialGradient>
+
+                <!-- Acorn symbol -->
+                <g id="acorn-symbol">
+                    <!-- Cap -->
+                    <path d="M -8 -3 Q 0 -11 8 -3 Q 0 -4 -8 -3 Z" fill="#603010" />
+                    <path d="M 0 -10 Q 2 -14 4 -13" stroke="#482208" stroke-width="2" fill="none" stroke-linecap="round" />
+                    <!-- Body -->
+                    <path d="M -7 -2 C -7 7 0 13 0 13 C 0 13 7 7 7 -2 Z" fill="#d97706" />
+                    <!-- Highlight -->
+                    <path d="M -5 0 C -5 5 -1 9 -1 9" stroke="#fcd34d" stroke-width="1.2" fill="none" opacity="0.7" stroke-linecap="round" />
+                </g>
+
+                <!-- Sparkle star -->
+                <g id="sparkle-symbol">
+                    <path d="M 0 -10 Q 0 0 10 0 Q 0 0 0 10 Q 0 0 -10 0 Q 0 0 0 -10 Z" fill="#fef08a" />
+                </g>
+            </defs>
+
+            <!-- Background Sky & Forest -->
+            <rect width="800" height="500" fill="url(#skyGrad)" />
+
+            <!-- Sunbeams / Ambient Glow -->
+            <circle cx="680" cy="80" r="140" fill="#fef3c7" opacity="0.12" />
+            <polygon points="680,80 180,500 350,500" fill="#fef3c7" opacity="0.04" />
+            <polygon points="680,80 400,500 580,500" fill="#fef3c7" opacity="0.03" />
+
+            <!-- Distant hills -->
+            <path d="M -20 380 Q 200 300 480 370 T 820 340 L 820 500 L -20 500 Z" fill="url(#hillsGrad)" opacity="0.8" />
+
+            <!-- Tree Trunk -->
+            <path d="M 120 500 Q 140 340 170 230 Q 190 120 220 0 L 330 0 Q 300 130 320 250 Q 340 370 380 500 Z" fill="url(#trunkGrad)" />
+            <!-- Bark texture lines -->
+            <path d="M 170 470 Q 185 350 205 240" stroke="#33190a" stroke-width="3" fill="none" opacity="0.5" />
+            <path d="M 285 480 Q 275 360 265 240" stroke="#251207" stroke-width="4" fill="none" opacity="0.6" />
+            <path d="M 230 180 Q 240 90 250 10" stroke="#33190a" stroke-width="3" fill="none" opacity="0.4" />
+
+            <!-- Big Branch extending right -->
+            <path d="M 315 220 Q 420 180 540 195 Q 430 225 325 260 Z" fill="#442613" />
+
+            <!-- Hollow Cavity -->
+            <!-- Outer hollow border/wood lip -->
+            <ellipse cx="245" cy="285" rx="52" ry="68" fill="#381d0c" />
+            <!-- Inner cavity -->
+            <ellipse cx="245" cy="285" rx="44" ry="58" fill="url(#hollowDepth)" />
+            <!-- Hollow bottom wooden ledge -->
+            <path d="M 205 320 Q 245 342 285 320 Q 245 330 205 320 Z" fill="#5a341a" />
+
+            <!-- Group for nuts drawn in and around the hollow (up to 30) -->
+            <g id="hollow-nuts-group"></g>
+
+            <!-- Foreground grass & meadow roots -->
+            <path d="M -10 440 Q 180 410 380 435 Q 580 460 810 420 L 810 500 L -10 500 Z" fill="#1b4325" />
+            <path d="M 80 460 Q 220 440 370 470 Q 550 495 810 450 L 810 500 L 80 500 Z" fill="#14361c" />
+
+            <!-- Roots sprawling -->
+            <path d="M 140 480 Q 90 490 30 500 L 80 500 Q 120 492 160 485 Z" fill="#3e2311" />
+            <path d="M 350 480 Q 430 490 500 500 L 440 500 Q 390 490 330 485 Z" fill="#3e2311" />
+
+            <!-- Squirrel Character -->
+            <g id="squirrel-actor" transform="translate(440, 310)">
+                <!-- Tail with sway animation -->
+                <g class="tail-sway">
+                    <path d="M 45 45 C 75 40 100 15 95 -15 C 90 -45 55 -60 45 -45 C 35 -30 45 10 30 45 Z" fill="#b45309" />
+                    <!-- Tail fluff inner -->
+                    <path d="M 48 35 C 70 30 85 10 82 -12 C 78 -35 55 -45 48 -35 Z" fill="#d97706" />
+                </g>
+
+                <!-- Back Foot -->
+                <ellipse cx="20" cy="72" rx="14" ry="7" fill="#78350f" />
+
+                <!-- Squirrel Body -->
+                <ellipse cx="32" cy="46" rx="22" ry="28" fill="#b45309" transform="rotate(-10 32 46)" />
+                <!-- Cream Belly -->
+                <ellipse cx="24" cy="48" rx="14" ry="20" fill="#fef3c7" transform="rotate(-8 24 48)" />
+
+                <!-- Front Foot -->
+                <ellipse cx="38" cy="73" rx="14" ry="7" fill="#78350f" />
+
+                <!-- Squirrel Head -->
+                <circle cx="20" cy="14" r="18" fill="#b45309" />
+                <!-- Squirrel Ears -->
+                <polygon points="12,0 16,-14 23,2" fill="#92400e" />
+                <polygon points="14,-2 17,-11 21,-1" fill="#fde68a" />
+                <polygon points="22,-1 27,-13 32,2" fill="#92400e" />
+
+                <!-- Cheeks & Snout -->
+                <ellipse cx="12" cy="18" rx="8" ry="7" fill="#fde68a" />
+                <!-- Tiny Nose -->
+                <circle cx="6" cy="16" r="3" fill="#451a03" />
+
+                <!-- Cute Eye -->
+                <circle cx="18" cy="11" r="4.5" fill="#1c1917" />
+                <circle cx="16.5" cy="9.5" r="1.8" fill="#ffffff" />
+                <circle cx="19.5" cy="12.5" r="0.8" fill="#ffffff" />
+
+                <!-- Arms / Paws holding an acorn -->
+                <g id="squirrel-paws">
+                    <ellipse cx="16" cy="36" rx="6" ry="4" fill="#92400e" transform="rotate(-15 16 36)" />
+                    <!-- Nut held in paws -->
+                    <use href="#acorn-symbol" x="12" y="38" transform="scale(0.85)" />
+                </g>
+            </g>
+
+            <!-- Flying nuts group during animations -->
+            <g id="flying-nuts-layer"></g>
+
+            <!-- Sparkles Layer for PURCHASE celebration -->
+            <g id="sparkles-layer" transform="translate(460, 310)"></g>
+
+            <!-- Canopy Leafy Overhang -->
+            <path d="M 0 0 L 800 0 L 800 60 Q 720 120 640 50 Q 560 130 480 60 Q 400 120 320 50 Q 240 130 160 50 Q 80 110 0 40 Z" fill="#14361c" />
+            <path d="M 0 0 L 800 0 L 800 35 Q 700 80 620 30 Q 520 85 420 35 Q 320 80 220 30 Q 120 75 0 25 Z" fill="#1b4d27" opacity="0.85" />
+        </svg>
+
+        <!-- Overlay Title -->
         <div class="pointer-events-none absolute left-6 top-5 z-10 sm:left-8 sm:top-6">
-            <h1 class="text-2xl font-bold text-white sm:text-4xl [text-shadow:0_2px_10px_rgba(0,0,0,.65)]">
+            <h1 class="text-2xl font-bold text-white sm:text-4xl [text-shadow:0_2px_10px_rgba(0,0,0,.75)]">
                 My Nut Hollow
             </h1>
-
-            <p class="mt-1 text-sm text-white/90 sm:text-base [text-shadow:0_2px_8px_rgba(0,0,0,.7)]">
+            <p class="mt-1 text-sm text-emerald-100 sm:text-base [text-shadow:0_2px_8px_rgba(0,0,0,.75)]">
                 Every nut you earn is stored in your hollow.
             </p>
         </div>
 
-        <div class="absolute right-8 top-1/2 z-10 hidden w-80 -translate-y-1/2 rounded-3xl border border-white/40 bg-white/10 p-8 text-center text-white shadow-xl backdrop-blur-sm xl:block">
-            <p class="text-sm font-semibold uppercase tracking-wide">
-                Your nuts
+        <!-- Floating Balance Card (Desktop) -->
+        <div class="absolute right-8 top-1/2 z-10 hidden w-72 -translate-y-1/2 rounded-3xl border border-white/30 bg-black/40 p-6 text-center text-white shadow-2xl backdrop-blur-md lg:block">
+            <p class="text-xs font-bold uppercase tracking-widest text-emerald-300">
+                Your Balance
             </p>
-
-            <p class="mt-3 text-7xl font-bold text-amber-300">
-                🌰 <span data-balance="{{ balance|default:0 }}">0</span>
+            <p class="mt-2 text-6xl font-extrabold text-amber-300 drop-shadow">
+                🌰 <span id="balance-counter-desktop" data-balance="{{ balance|default:0 }}">0</span>
             </p>
-
-            <p class="mt-2 text-lg">
-                stored in your hollow
+            <p class="mt-2 text-sm text-emerald-100">
+                nuts stored in hollow
             </p>
-
-            <p class="mt-6 text-xs">
-                Every acorn on the grass stands for 5 nuts.
+            <p class="mt-4 text-xs text-emerald-200/80">
+                Displaying up to 30 nuts in tree hollow
             </p>
+            <div class="mt-5 flex flex-col gap-2">
+                <a href="/payments/credits/buy/" class="inline-flex items-center justify-center rounded-full bg-amber-500 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-stone-900 shadow-lg shadow-amber-500/30 transition hover:bg-amber-400">
+                    Buy nuts
+                </a>
+                <a href="/credits/ledger/" class="inline-flex items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-950/60 px-4 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-900/80">
+                    View full ledger &rarr;
+                </a>
+            </div>
         </div>
 
-        <button
-            id="replay-animation"
-            type="button"
-        >
-            Replay Animation
+        <!-- Replay Button -->
+        <button id="replay-animation" type="button" aria-label="Replay recent credit animation">
+            ↺ Replay
         </button>
-
     </div>
 
-    <div class="relative z-10 mx-4 -mt-8 mb-2 rounded-3xl border border-white/30 bg-green-950/75 p-6 text-center text-white shadow-xl backdrop-blur-md sm:mx-auto sm:max-w-sm xl:hidden">
-        <p class="text-sm font-semibold uppercase tracking-wide">
-            Your nuts
+    <!-- Mobile Balance Card (Small Screens) -->
+    <div class="relative z-10 mx-4 -mt-6 mb-4 rounded-3xl border border-white/20 bg-green-950/90 p-5 text-center text-white shadow-xl backdrop-blur-md sm:mx-auto sm:max-w-sm lg:hidden">
+        <p class="text-xs font-bold uppercase tracking-widest text-emerald-300">
+            Your Balance
         </p>
-
-        <p class="mt-3 text-7xl font-bold text-amber-300">
-            🌰 <span data-balance="{{ balance|default:0 }}">0</span>
+        <p class="mt-2 text-5xl font-extrabold text-amber-300 drop-shadow">
+            🌰 <span id="balance-counter-mobile" data-balance="{{ balance|default:0 }}">0</span>
         </p>
-
-        <p class="mt-2 text-lg">
-            stored in your hollow
+        <p class="mt-1 text-sm text-emerald-100">
+            nuts stored in your hollow
         </p>
-
-        <p class="mt-4 text-xs">
-            Every acorn on the grass stands for 5 nuts.
-        </p>
+        <div class="mt-4 flex items-center justify-center gap-3">
+            <a href="/payments/credits/buy/" class="inline-flex items-center justify-center rounded-full bg-amber-500 px-5 py-2 text-xs font-bold uppercase tracking-wider text-stone-900 shadow-md transition hover:bg-amber-400">
+                Buy nuts
+            </a>
+            <a href="/credits/ledger/" class="inline-flex items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-900/50 px-4 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-800">
+                Full ledger
+            </a>
+        </div>
     </div>
 </section>
 
-<section class="mx-auto max-w-5xl px-6 py-10">
-    <h2 class="text-xl font-bold text-green-900 dark:text-green-50">
-        Recent activity
-    </h2>
+<!-- Recent Activity Section -->
+<section class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-xl font-bold text-green-900 dark:text-green-50">
+                Recent activity
+            </h2>
+            <p class="text-xs text-green-800/70 dark:text-green-300/70">
+                Last 20 transactions in your credit ledger
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="/credits/ledger/" class="text-xs font-semibold text-green-700 hover:underline dark:text-green-300">
+                All entries &rarr;
+            </a>
+            <a href="/payments/credits/buy/" class="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-bold text-stone-900 shadow-sm transition hover:bg-amber-400">
+                Buy nuts
+            </a>
+        </div>
+    </div>
 
-    <div class="mt-4 divide-y divide-green-100 rounded-2xl border border-green-100 bg-card dark:divide-green-900/60 dark:border-green-900/60 dark:bg-card-dark">
-
+    <div class="mt-4 divide-y divide-green-100 rounded-2xl border border-green-100 bg-card shadow-sm dark:divide-green-900/60 dark:border-green-900/60 dark:bg-card-dark">
         {% for e in entries %}
-        <div class="flex items-center justify-between gap-4 px-5 py-4">
+        <div class="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-green-50/50 dark:hover:bg-green-950/20">
             <div>
-                <p class="font-semibold">
+                <p class="font-semibold text-green-950 dark:text-green-50">
                     {{ e.get_reason_display }}
                 </p>
-
                 <p class="text-xs text-green-900/60 dark:text-green-100/60">
                     {{ e.description }} · {{ e.created_at|date:"d M Y, h:i A" }}
                 </p>
@@ -191,100 +385,375 @@
             </span>
             {% endif %}
         </div>
-
         {% empty %}
-        <p class="px-5 py-6 text-green-900/60 dark:text-green-100/60">
-            No activity yet.
+        <p class="px-5 py-8 text-center text-sm text-green-900/60 dark:text-green-100/60">
+            No activity yet. Earn nuts by completing your profile, uploading verified notes, or teaching sessions!
         </p>
         {% endfor %}
-
     </div>
 </section>
+
+<!-- Embedded state for immediate fallback -->
+<script id="hollow-embedded-state" type="application/json">
+{
+    "balance": {{ balance|default:0 }},
+    "entries": [
+        {% for e in entries %}
+        {
+            "id": {{ e.id }},
+            "amount": {{ e.amount }},
+            "reason": "{{ e.reason|escapejs }}",
+            "created_at": "{{ e.created_at|date:'c' }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+}
+</script>
 
 <script>
 (function () {
     "use strict";
 
-    const video = document.getElementById("nut-hollow-video");
-    const replayButton = document.getElementById("replay-animation");
-    const errorMessage = document.getElementById("video-error");
+    // 30 Fixed Organic Coordinates inside and on the ledge of the tree hollow
+    const NUT_POSITIONS = [
+        // Cavity floor (deep inner)
+        { x: 235, y: 285 }, { x: 250, y: 285 }, { x: 225, y: 295 },
+        { x: 240, y: 295 }, { x: 255, y: 295 }, { x: 265, y: 290 },
+        // Mid-cavity pile
+        { x: 220, y: 305 }, { x: 232, y: 306 }, { x: 246, y: 307 },
+        { x: 258, y: 306 }, { x: 270, y: 304 }, { x: 215, y: 314 },
+        // Ledge cluster
+        { x: 226, y: 316 }, { x: 238, y: 317 }, { x: 250, y: 318 },
+        { x: 262, y: 316 }, { x: 274, y: 313 }, { x: 208, y: 322 },
+        { x: 220, y: 325 }, { x: 232, y: 326 }, { x: 245, y: 328 },
+        { x: 258, y: 327 }, { x: 270, y: 324 }, { x: 282, y: 321 },
+        // Ledge spillover
+        { x: 200, y: 330 }, { x: 214, y: 334 }, { x: 230, y: 336 },
+        { x: 248, y: 337 }, { x: 265, y: 335 }, { x: 288, y: 328 }
+    ];
 
-    const PLAYBACK_SPEED = 0.5;
+    const hollowNutsGroup = document.getElementById("hollow-nuts-group");
+    const squirrelActor = document.getElementById("squirrel-actor");
+    const flyingNutsLayer = document.getElementById("flying-nuts-layer");
+    const sparklesLayer = document.getElementById("sparkles-layer");
+    const replayBtn = document.getElementById("replay-animation");
+    const desktopCounter = document.getElementById("balance-counter-desktop");
+    const mobileCounter = document.getElementById("balance-counter-mobile");
 
-    function applyPlaybackSpeed() {
-        video.playbackRate = PLAYBACK_SPEED;
-        video.defaultPlaybackRate = PLAYBACK_SPEED;
+    let currentBalance = 0;
+    let targetBalance = 0;
+    let animationQueue = [];
+    let isProcessingQueue = false;
+
+    // Check prefers-reduced-motion
+    function isReducedMotion() {
+        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     }
 
-    video.addEventListener("loadedmetadata", function () {
-        applyPlaybackSpeed();
-        video.play().catch(function (error) {
-            console.warn("Autoplay was blocked:", error);
-        });
-    });
+    // Safely update visible counter numbers
+    function updateCounterDisplays(val) {
+        if (desktopCounter) desktopCounter.textContent = val;
+        if (mobileCounter) mobileCounter.textContent = val;
+    }
 
-    video.addEventListener("play", applyPlaybackSpeed);
-    video.addEventListener("ratechange", function () {
-        if (video.playbackRate !== PLAYBACK_SPEED) {
-            applyPlaybackSpeed();
+    // Draw min(balance, 30) nuts in the hollow
+    function renderHollowNuts(count) {
+        if (!hollowNutsGroup) return;
+        hollowNutsGroup.innerHTML = "";
+        const visibleNuts = Math.max(0, Math.min(count, 30));
+
+        for (let i = 0; i < visibleNuts; i++) {
+            const pos = NUT_POSITIONS[i % NUT_POSITIONS.length];
+            const useEl = document.createElementNS("http://www.w3.org/2000/svg", "use");
+            useEl.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#acorn-symbol");
+            useEl.setAttribute("href", "#acorn-symbol");
+            useEl.setAttribute("x", pos.x);
+            useEl.setAttribute("y", pos.y);
+            // Slight jitter for natural look
+            const rot = ((i * 47) % 50) - 25;
+            useEl.setAttribute("transform", `rotate(${rot} ${pos.x} ${pos.y})`);
+            hollowNutsGroup.appendChild(useEl);
         }
-    });
+    }
 
-    video.addEventListener("error", function () {
-        errorMessage.style.display = "flex";
-        console.error("Video failed to load:", video.error);
-    });
+    // Animate counter from startVal to endVal
+    function animateCounter(startVal, endVal, durationMs) {
+        if (isReducedMotion() || durationMs <= 0 || startVal === endVal) {
+            updateCounterDisplays(endVal);
+            return Promise.resolve();
+        }
 
-    video.addEventListener("loadeddata", function () {
-        errorMessage.style.display = "none";
-    });
+        return new Promise(function (resolve) {
+            const startTime = performance.now();
+            const diff = endVal - startVal;
 
-    replayButton.addEventListener("click", function () {
-        video.currentTime = 0;
-        applyPlaybackSpeed();
+            function step(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / durationMs, 1);
+                // easeOutQuad
+                const ease = 1 - (1 - progress) * (1 - progress);
+                const current = Math.round(startVal + diff * ease);
+                updateCounterDisplays(current);
 
-        video.play().catch(function (error) {
-            console.error("Video playback failed:", error);
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    updateCounterDisplays(endVal);
+                    resolve();
+                }
+            }
+            requestAnimationFrame(step);
         });
-    });
+    }
 
-    applyPlaybackSpeed();
+    // Trigger sparkles burst on purchase
+    function triggerSparkles() {
+        if (!sparklesLayer || isReducedMotion()) return;
+        sparklesLayer.innerHTML = "";
 
-    video.play().catch(function (error) {
-        console.warn("Waiting for user interaction to play video:", error);
-    });
+        const sparkleCoords = [
+            { x: -30, y: -20, delay: 0 },
+            { x: 30, y: -40, delay: 100 },
+            { x: 0, y: -60, delay: 150 },
+            { x: -50, y: 10, delay: 50 },
+            { x: 40, y: 10, delay: 200 }
+        ];
 
-    const balances = document.querySelectorAll("[data-balance]");
-
-    const targetBalance = Math.max(
-        0,
-        parseInt(balances[0]?.dataset.balance || "0", 10) || 0
-    );
-
-    let displayedBalance = 0;
-
-    if (targetBalance === 0) {
-        balances.forEach(function (element) {
-            element.textContent = "0";
+        sparkleCoords.forEach(function (c) {
+            const star = document.createElementNS("http://www.w3.org/2000/svg", "use");
+            star.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#sparkle-symbol");
+            star.setAttribute("href", "#sparkle-symbol");
+            star.setAttribute("x", c.x);
+            star.setAttribute("y", c.y);
+            star.classList.add("sparkle-anim");
+            star.style.animationDelay = c.delay + "ms";
+            sparklesLayer.appendChild(star);
         });
-    } else {
-        const counterTimer = setInterval(function () {
-            displayedBalance = Math.min(
-                targetBalance,
-                displayedBalance + Math.max(
-                    1,
-                    Math.ceil(targetBalance / 40)
-                )
-            );
 
-            balances.forEach(function (element) {
-                element.textContent = displayedBalance;
+        setTimeout(function () {
+            sparklesLayer.innerHTML = "";
+        }, 1200);
+    }
+
+    // Animate flying nuts (capped at 10)
+    function animateFlyingNuts(isIn, count) {
+        if (!flyingNutsLayer || isReducedMotion()) return;
+        flyingNutsLayer.innerHTML = "";
+        const nutCount = Math.min(Math.abs(count), 10);
+
+        for (let i = 0; i < nutCount; i++) {
+            const nut = document.createElementNS("http://www.w3.org/2000/svg", "use");
+            nut.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#acorn-symbol");
+            nut.setAttribute("href", "#acorn-symbol");
+            nut.setAttribute("x", 440);
+            nut.setAttribute("y", 340);
+            nut.classList.add(isIn ? "nut-flying-in" : "nut-flying-out");
+            nut.style.animationDelay = (i * 60) + "ms";
+            flyingNutsLayer.appendChild(nut);
+        }
+
+        setTimeout(function () {
+            flyingNutsLayer.innerHTML = "";
+        }, 1200);
+    }
+
+    // Play animation for a single ledger event
+    function playEventAnimation(event, fromBal, toBal) {
+        if (isReducedMotion()) {
+            updateCounterDisplays(toBal);
+            renderHollowNuts(toBal);
+            return Promise.resolve();
+        }
+
+        return new Promise(function (resolve) {
+            const isPurchase = (event.reason === "PURCHASE" || event.reason === "credit_purchase");
+            const isPositive = event.amount > 0;
+            const isNegative = event.amount < 0;
+
+            if (isPurchase) {
+                // Squirrel happy bounce & sparkles
+                squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve");
+                void squirrelActor.offsetWidth; // force reflow
+                squirrelActor.classList.add("squirrel-bounce");
+                triggerSparkles();
+            } else if (isPositive) {
+                // Squirrel carries nuts in
+                squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve");
+                void squirrelActor.offsetWidth;
+                squirrelActor.classList.add("squirrel-deposit");
+            } else if (isNegative) {
+                // Squirrel takes nuts out
+                squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve");
+                void squirrelActor.offsetWidth;
+                squirrelActor.classList.add("squirrel-retrieve");
+            }
+
+            // Fly nuts
+            if (isPositive) {
+                animateFlyingNuts(true, event.amount);
+            } else if (isNegative) {
+                animateFlyingNuts(false, event.amount);
+            }
+
+            // Animate counter and intermediate nuts render
+            animateCounter(fromBal, toBal, 900).then(function () {
+                renderHollowNuts(toBal);
             });
 
-            if (displayedBalance >= targetBalance) {
-                clearInterval(counterTimer);
+            // Wait for squirrel animation to finish
+            setTimeout(function () {
+                if (squirrelActor) {
+                    squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve");
+                }
+                resolve();
+            }, 1250);
+        });
+    }
+
+    // Sequential Queue Processor
+    async function processQueue() {
+        if (isProcessingQueue) return;
+        isProcessingQueue = true;
+
+        while (animationQueue.length > 0) {
+            const item = animationQueue.shift();
+            await playEventAnimation(item.event, item.fromBal, item.toBal);
+            currentBalance = item.toBal;
+        }
+
+        // Final guarantee
+        updateCounterDisplays(targetBalance);
+        renderHollowNuts(targetBalance);
+        isProcessingQueue = false;
+    }
+
+    // Queue one or more ledger events
+    function enqueueEvents(events, finalBal) {
+        if (events.length === 0) {
+            // No events to animate; show final state directly
+            currentBalance = finalBal;
+            updateCounterDisplays(finalBal);
+            renderHollowNuts(finalBal);
+            return;
+        }
+
+        if (isReducedMotion()) {
+            currentBalance = finalBal;
+            updateCounterDisplays(finalBal);
+            renderHollowNuts(finalBal);
+            return;
+        }
+
+        // Calculate intermediate balances backwards from final
+        let runningBal = finalBal;
+        const items = [];
+        for (let i = events.length - 1; i >= 0; i--) {
+            const ev = events[i];
+            const startBal = runningBal - ev.amount;
+            items.unshift({
+                event: ev,
+                fromBal: Math.max(0, startBal),
+                toBal: Math.max(0, runningBal)
+            });
+            runningBal = startBal;
+        }
+
+        // Start from initial balance before the queued events
+        currentBalance = items[0].fromBal;
+        updateCounterDisplays(currentBalance);
+        renderHollowNuts(currentBalance);
+
+        animationQueue.push(...items);
+        processQueue();
+    }
+
+    // Main initialization
+    async function initHollow() {
+        let stateData = null;
+
+        // Fetch state endpoint GET /credits/hollow/state/
+        try {
+            const res = await fetch("/credits/hollow/state/", { credentials: "same-origin" });
+            if (res.ok) {
+                stateData = await res.json();
             }
-        }, 25);
+        } catch (e) {
+            console.warn("Fetch hollow state error, using embedded fallback", e);
+        }
+
+        // Fallback to embedded state
+        if (!stateData) {
+            const embeddedScript = document.getElementById("hollow-embedded-state");
+            if (embeddedScript) {
+                try {
+                    stateData = JSON.parse(embeddedScript.textContent);
+                } catch (e) {
+                    console.error("Failed to parse embedded state", e);
+                }
+            }
+        }
+
+        if (!stateData) {
+            stateData = { balance: 0, entries: [] };
+        }
+
+        targetBalance = stateData.balance;
+        const entries = stateData.entries || [];
+        const newestEntry = entries.length > 0 ? entries[0] : null;
+        const newestId = newestEntry ? String(newestEntry.id) : null;
+
+        // Safe localStorage lookup
+        let lastSeenId = null;
+        try {
+            lastSeenId = localStorage.getItem("hollow_last_seen");
+        } catch (e) {
+            console.warn("Could not read hollow_last_seen from localStorage", e);
+        }
+
+        // Find unseen events (entries newer than lastSeenId)
+        let unseenEvents = [];
+        if (lastSeenId && newestId && lastSeenId !== newestId) {
+            for (let i = 0; i < entries.length; i++) {
+                if (String(entries[i].id) === lastSeenId) break;
+                unseenEvents.push(entries[i]);
+            }
+            // Reverse so oldest plays first
+            unseenEvents.reverse();
+        }
+
+        // Update localStorage with newest entry id
+        if (newestId) {
+            try {
+                localStorage.setItem("hollow_last_seen", newestId);
+            } catch (e) {
+                console.warn("Could not write hollow_last_seen to localStorage", e);
+            }
+        }
+
+        // Enqueue unseen events or set final state
+        enqueueEvents(unseenEvents, targetBalance);
+
+        // Replay button handler
+        if (replayBtn) {
+            replayBtn.addEventListener("click", function () {
+                if (isProcessingQueue) return;
+                const replayEvent = newestEntry || { amount: 5, reason: "PURCHASE" };
+                const prev = Math.max(0, targetBalance - replayEvent.amount);
+                animationQueue.push({
+                    event: replayEvent,
+                    fromBal: prev,
+                    toBal: targetBalance
+                });
+                processQueue();
+            });
+        }
+    }
+
+    // Run on DOM ready
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initHollow);
+    } else {
+        initHollow();
     }
 })();
 </script>

@@ -6,4 +6,6 @@ app_name = "credits"
 
 urlpatterns = [
     path("hollow/", views.hollow, name="hollow"),
+    path("hollow/state/", views.hollow_state, name="hollow_state"),
+    path("ledger/", views.ledger_list, name="ledger"),
 ]

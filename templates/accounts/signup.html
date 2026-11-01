@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Sign up - Gayn Kotor{% endblock %}
+{% block title %}Sign up - {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
 <section class="mx-auto max-w-xl px-6 py-16">
@@ -46,7 +46,7 @@
 
         <p class="mt-6 text-center text-sm text-green-900/70 dark:text-green-100/70">
             Already have an account?
-            <a href="#" class="font-semibold text-green-700 hover:underline dark:text-green-300">Log in</a>
+            <a href="{% url 'accounts:login' %}" class="font-semibold text-green-700 hover:underline dark:text-green-300">Log in</a>
         </p>
     </div>
 </section>

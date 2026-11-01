@@ -1,5 +1,6 @@
 import re
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -23,6 +24,20 @@ class User(AbstractUser):
         unique=True,
     )
     is_email_verified = models.BooleanField(default=False)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+    suspended_at = models.DateTimeField(null=True, blank=True)
+    suspended_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="suspended_users",
+    )
+    suspension_reason = models.TextField(blank=True, default="")
+
+    @property
+    def is_verified(self):
+        return self.email_verified_at is not None
     REQUIRED_FIELDS = []
 
     def clean(self):

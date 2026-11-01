@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Gyan Kotor{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <!-- Header Banner -->
+    <div class="mb-8 rounded-3xl border border-green-100 bg-gradient-to-r from-green-500/10 via-emerald-500/5 to-transparent p-6 shadow-sm dark:border-green-900/60 dark:from-green-950/40 sm:p-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <div class="flex flex-wrap items-center gap-2">
+                    {% if is_student %}
+                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+                        Student
+                    </span>
+                    {% endif %}
+                    {% if is_cr %}
+                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">
+                        Class Representative (CR)
+                    </span>
+                    {% endif %}
+                    {% if is_class_teacher %}
+                    <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+                        Class Teacher
+                    </span>
+                    {% endif %}
+                    {% if is_lecturer and not is_class_teacher %}
+                    <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+                        Lecturer
+                    </span>
+                    {% endif %}
+                    {% if is_admin %}
+                    <span class="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-800 dark:bg-purple-900/60 dark:text-purple-200">
+                        Administrator
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="mt-3 text-2xl font-black text-green-950 dark:text-green-50 sm:text-4xl">
+                    Welcome back, {{ user.first_name|default:user.username }}!
+                </h1>
+                <p class="mt-1 text-xs text-green-900/70 dark:text-green-200/70 sm:text-sm">
+                    Here is your personal overview and activity hub on {{ SITE_NAME }}.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                {% if student %}
+                <a href="{% url 'credits:hollow' %}" class="inline-flex items-center gap-2 rounded-2xl border border-green-200/60 bg-white px-4 py-2 text-xs font-bold text-amber-600 shadow-sm transition hover:bg-green-50 dark:border-green-800 dark:bg-neutral-800 dark:text-amber-400">
+                    <span class="text-base">🌰</span>
+                    <span>{{ student.nut_balance }} nuts</span>
+                </a>
+                {% endif %}
+                <a href="{% url 'notes:upload' %}" class="rounded-full bg-green-600 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">
+                    Upload Note
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. STUDENT WIDGETS -->
+    {% if student %}
+    <div class="mb-12 space-y-8">
+        <!-- CR Review Queue Notice if applicable -->
+        {% if student.is_cr %}
+        <div class="rounded-2xl border border-amber-300/80 bg-amber-50/70 p-5 dark:border-amber-800/80 dark:bg-amber-950/30">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">📋</span>
+                        <h2 class="text-sm font-bold text-amber-950 dark:text-amber-100">
+                            CR Review Queue: {{ student.cr_batch.name }}
+                        </h2>
+                    </div>
+                    <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/80">
+                        You have <strong>{{ student.review_queue_count }} note(s)</strong> waiting for peer review in your batch.
+                    </p>
+                </div>
+                <a href="{% url 'notes:review_list' %}" class="rounded-full bg-amber-500 px-4 py-2 text-xs font-bold text-stone-900 shadow-sm hover:bg-amber-400">
+                    Open Review Queue &rarr;
+                </a>
+            </div>
+
+            {% if student.review_queue_notes %}
+            <div class="mt-4 divide-y divide-amber-200/60 rounded-xl border border-amber-200/60 bg-white dark:divide-amber-900/40 dark:border-amber-900/40 dark:bg-card-dark">
+                {% for n in student.review_queue_notes %}
+                <div class="flex items-center justify-between p-3 text-xs">
+                    <div>
+                        <p class="font-bold text-green-950 dark:text-green-50">{{ n.title }}</p>
+                        <p class="text-[11px] text-green-900/60 dark:text-green-100/60">By {{ n.owner.username }} · {{ n.created_at|date:"d M Y" }}</p>
+                    </div>
+                    <a href="{% url 'notes:review_detail' n.id %}" class="font-semibold text-amber-700 hover:underline dark:text-amber-400">
+                        Review &rarr;
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Student Grid -->
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <!-- Nut Balance & Recent Ledger -->
+            <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-green-950 dark:text-green-50">Nut Hollow Balance</h2>
+                    <a href="{% url 'credits:hollow' %}" class="text-xs font-semibold text-green-700 hover:underline dark:text-green-300">Hollow &rarr;</a>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span class="text-3xl font-black text-amber-500">🌰 {{ student.nut_balance }}</span>
+                    <span class="text-xs text-green-900/60 dark:text-green-100/60">nuts available</span>
+                </div>
+                <div class="mt-4 border-t border-green-50 pt-3 dark:border-green-900/40">
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-green-800/70 dark:text-green-300/70">Recent Transactions</p>
+                    <div class="mt-2 divide-y divide-green-50 text-xs dark:divide-green-900/30">
+                        {% for e in student.recent_ledger %}
+                        <div class="flex items-center justify-between py-1.5">
+                            <span class="truncate pr-2 text-green-900/80 dark:text-green-200/80">{{ e.get_reason_display }}</span>
+                            <span class="shrink-0 font-bold {% if e.amount > 0 %}text-green-600 dark:text-green-400{% else %}text-red-500{% endif %}">
+                                {% if e.amount > 0 %}+{% endif %}{{ e.amount }} 🌰
+                            </span>
+                        </div>
+                        {% empty %}
+                        <p class="py-2 text-[11px] text-green-900/50 dark:text-green-100/50">No transactions yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unlocked Notes -->
+            <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-green-950 dark:text-green-50">Unlocked Notes</h2>
+                    <a href="{% url 'notes:list' %}" class="text-xs font-semibold text-green-700 hover:underline dark:text-green-300">Browse &rarr;</a>
+                </div>
+                <div class="mt-4 space-y-2.5">
+                    {% for d in student.unlocked_notes %}
+                    <a href="{% url 'notes:detail' d.note.id %}" class="block rounded-xl border border-green-50 p-2.5 transition hover:bg-green-50/50 dark:border-green-900/30 dark:hover:bg-green-950/20">
+                        <p class="truncate text-xs font-bold text-green-950 dark:text-green-50">{{ d.note.title }}</p>
+                        <p class="text-[11px] text-green-900/60 dark:text-green-100/60">{{ d.note.course_code }} · {{ d.downloaded_at|date:"d M Y" }}</p>
+                    </a>
+                    {% empty %}
+                    <p class="py-6 text-center text-xs text-green-900/50 dark:text-green-100/50">You haven't unlocked any notes yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Upcoming Swap Sessions -->
+            <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-green-950 dark:text-green-50">Upcoming Swaps</h2>
+                    <a href="{% url 'swaps:list' %}?tab=my_sessions" class="text-xs font-semibold text-green-700 hover:underline dark:text-green-300">All sessions &rarr;</a>
+                </div>
+                <div class="mt-4 space-y-2.5">
+                    {% for s in student.upcoming_sessions %}
+                    <a href="{% url 'swaps:session_detail' s.id %}" class="block rounded-xl border border-green-50 p-2.5 transition hover:bg-green-50/50 dark:border-green-900/30 dark:hover:bg-green-950/20">
+                        <div class="flex items-center justify-between">
+                            <p class="truncate text-xs font-bold text-green-950 dark:text-green-50">{{ s.skill_name }}</p>
+                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">Scheduled</span>
+                        </div>
+                        <p class="mt-0.5 text-[11px] text-green-900/60 dark:text-green-100/60">
+                            {% if s.teacher_id == user.id %}Teaching {{ s.learner.username }}{% else %}Learning from {{ s.teacher.username }}{% endif %}
+                            · {{ s.proposed_time|date:"d M, h:i A" }}
+                        </p>
+                    </a>
+                    {% empty %}
+                    <p class="py-6 text-center text-xs text-green-900/50 dark:text-green-100/50">No upcoming swap sessions.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- My Uploaded Notes Status Tracker -->
+        <div class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-green-950 dark:text-green-50">My Uploaded Notes</h2>
+                    <p class="text-xs text-green-900/60 dark:text-green-100/60">Track the status of study materials you've shared</p>
+                </div>
+                <!-- Status counts chips -->
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+                        {{ student.status_counts.approved }} Approved
+                    </span>
+                    <span class="rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">
+                        {{ student.status_counts.pending }} Pending
+                    </span>
+                    {% if student.status_counts.flagged %}
+                    <span class="rounded-full bg-red-100 px-3 py-1 font-semibold text-red-800 dark:bg-red-900/60 dark:text-red-200">
+                        {{ student.status_counts.flagged }} Flagged
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-4 divide-y divide-green-50 border-t border-green-50 dark:divide-green-900/40 dark:border-green-900/40">
+                {% for note in student.my_notes %}
+                <div class="flex items-center justify-between py-3 text-xs">
+                    <div>
+                        <a href="{% url 'notes:detail' note.id %}" class="font-bold text-green-950 hover:underline dark:text-green-50">
+                            {{ note.title }}
+                        </a>
+                        <p class="text-[11px] text-green-900/60 dark:text-green-100/60">
+                            {{ note.course_code }} · {{ note.department.code }} · Uploaded {{ note.created_at|date:"d M Y" }}
+                        </p>
+                    </div>
+                    <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase
+                        {% if note.status == 'approved' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200
+                        {% elif note.status == 'pending' %}bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200
+                        {% elif note.status == 'flagged' %}bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200
+                        {% else %}bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300{% endif %}">
+                        {{ note.get_status_display }}
+                    </span>
+                </div>
+                {% empty %}
+                <p class="py-6 text-center text-xs text-green-900/50 dark:text-green-100/50">You haven't uploaded any notes yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 2. CLASS TEACHER WIDGETS -->
+    {% if class_teacher %}
+    <div class="mb-12 space-y-6">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-green-100 pb-4 dark:border-green-900/60">
+            <div>
+                <h2 class="text-xl font-bold text-green-950 dark:text-green-50">
+                    Class Teacher Management
+                </h2>
+                <p class="text-xs text-green-900/70 dark:text-green-200/70">
+                    Batches: {% for b in class_teacher.batches %}<span class="font-semibold">{{ b.department.code }} - {{ b.name }}</span>{% if not forloop.last %}, {% endif %}{% endfor %}
+                </p>
+            </div>
+            <a href="{{ class_teacher.manage_batch_url }}" class="rounded-full bg-green-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-green-700">
+                Manage Batch Portal &rarr;
+            </a>
+        </div>
+
+        <!-- Class Teacher Stat Cards -->
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Members</p>
+                <p class="mt-2 text-2xl font-black text-green-950 dark:text-green-50">{{ class_teacher.member_count }}</p>
+            </div>
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Pending Joins</p>
+                <p class="mt-2 text-2xl font-black text-amber-600">{{ class_teacher.pending_joins_count }}</p>
+            </div>
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Escalated Notes</p>
+                <p class="mt-2 text-2xl font-black text-red-600">{{ class_teacher.escalated_count }}</p>
+            </div>
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Flagged Notes</p>
+                <p class="mt-2 text-2xl font-black text-red-600">{{ class_teacher.flagged_count }}</p>
+            </div>
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Open Appeals</p>
+                <p class="mt-2 text-2xl font-black text-purple-600">{{ class_teacher.open_appeals_count }}</p>
+            </div>
+        </div>
+
+        <!-- Moderation lists for teacher -->
+        <div class="grid gap-6 md:grid-cols-2">
+            <!-- Escalated Notes -->
+            <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-green-950 dark:text-green-50">Escalated Notes</h3>
+                    <a href="{% url 'notes:review_list' %}" class="text-xs text-green-700 hover:underline dark:text-green-300">Review queue &rarr;</a>
+                </div>
+                <div class="mt-3 divide-y divide-green-50 text-xs dark:divide-green-900/30">
+                    {% for n in class_teacher.escalated_notes %}
+                    <div class="flex items-center justify-between py-2">
+                        <div>
+                            <p class="font-bold text-green-950 dark:text-green-50">{{ n.title }}</p>
+                            <p class="text-[11px] text-green-900/60 dark:text-green-100/60">Batch {{ n.batch.name }} · By {{ n.owner.username }}</p>
+                        </div>
+                        <a href="{% url 'notes:review_detail' n.id %}" class="rounded-full bg-red-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-red-700">Review</a>
+                    </div>
+                    {% empty %}
+                    <p class="py-4 text-center text-xs text-green-900/50 dark:text-green-100/50">No escalated notes.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Flagged Notes & Appeals -->
+            <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-green-950 dark:text-green-50">Flagged Notes & Appeals</h3>
+                    <a href="{% url 'notes:flagged_list' %}" class="text-xs text-green-700 hover:underline dark:text-green-300">Flagged list &rarr;</a>
+                </div>
+                <div class="mt-3 divide-y divide-green-50 text-xs dark:divide-green-900/30">
+                    {% for n in class_teacher.flagged_notes %}
+                    <div class="flex items-center justify-between py-2">
+                        <div>
+                            <p class="font-bold text-red-700 dark:text-red-400">{{ n.title }}</p>
+                            <p class="text-[11px] text-green-900/60 dark:text-green-100/60">Reported/Flagged in {{ n.batch.name }}</p>
+                        </div>
+                        <a href="{% url 'notes:detail' n.id %}" class="text-xs font-semibold text-green-700 hover:underline dark:text-green-300">Inspect &rarr;</a>
+                    </div>
+                    {% empty %}
+                    <p class="py-4 text-center text-xs text-green-900/50 dark:text-green-100/50">No flagged notes.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 3. LECTURER WIDGETS -->
+    {% if lecturer %}
+    <div class="mb-12 space-y-6">
+        <h2 class="text-xl font-bold text-green-950 dark:text-green-50 border-b border-green-100 pb-3 dark:border-green-900/60">
+            Lecturer Overview
+        </h2>
+
+        <div class="grid gap-6 md:grid-cols-2">
+            <!-- Own notes with unlock counts -->
+            <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-green-950 dark:text-green-50">My Published Notes</h3>
+                    <a href="{% url 'notes:upload' %}" class="text-xs text-green-700 hover:underline dark:text-green-300">Upload new &rarr;</a>
+                </div>
+                <div class="mt-3 divide-y divide-green-50 text-xs dark:divide-green-900/30">
+                    {% for n in lecturer.own_notes %}
+                    <div class="flex items-center justify-between py-2">
+                        <div>
+                            <a href="{% url 'notes:detail' n.id %}" class="font-bold text-green-950 hover:underline dark:text-green-50">{{ n.title }}</a>
+                            <p class="text-[11px] text-green-900/60 dark:text-green-100/60">{{ n.course_code }}</p>
+                        </div>
+                        <span class="rounded-full bg-emerald-50 px-3 py-1 font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                            {{ n.unlock_count }} unlocks
+                        </span>
+                    </div>
+                    {% empty %}
+                    <p class="py-4 text-center text-xs text-green-900/50 dark:text-green-100/50">No notes uploaded yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Own Teaching Sessions -->
+            <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-green-950 dark:text-green-50">My Teaching Sessions</h3>
+                    <a href="{% url 'swaps:list' %}?tab=my_sessions" class="text-xs text-green-700 hover:underline dark:text-green-300">Sessions &rarr;</a>
+                </div>
+                <div class="mt-3 divide-y divide-green-50 text-xs dark:divide-green-900/30">
+                    {% for s in lecturer.own_sessions %}
+                    <div class="flex items-center justify-between py-2">
+                        <div>
+                            <p class="font-bold text-green-950 dark:text-green-50">{{ s.skill_name }}</p>
+                            <p class="text-[11px] text-green-900/60 dark:text-green-100/60">Learner: {{ s.learner.username }}</p>
+                        </div>
+                        <span class="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+                            {{ s.get_status_display }}
+                        </span>
+                    </div>
+                    {% empty %}
+                    <p class="py-4 text-center text-xs text-green-900/50 dark:text-green-100/50">No teaching sessions yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Courses Gated (PRD 6.1 & 7.5) -->
+        {% if ENABLE_VIDEO_COURSES and lecturer.courses is not None %}
+        <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-green-950 dark:text-green-50">My Video Courses</h3>
+                    {% if lecturer.wallet_balance is not None %}
+                    <p class="text-[11px] text-green-900/60 dark:text-green-100/60">Wallet Balance: <strong class="text-forest dark:text-grass-light">৳{{ lecturer.wallet_balance|floatformat:2 }} BDT</strong></p>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="{% url 'payments:wallet' %}" class="text-xs text-green-700 hover:underline dark:text-green-300">Wallet &rarr;</a>
+                    <a href="{% url 'courses:my_courses' %}" class="text-xs text-green-700 hover:underline dark:text-green-300">Manage &rarr;</a>
+                </div>
+            </div>
+            <div class="mt-3 divide-y divide-green-50 text-xs dark:divide-green-900/30">
+                {% for c in lecturer.courses %}
+                <div class="flex items-center justify-between py-2">
+                    <div>
+                        <a href="{% url 'courses:course_detail' c.id %}" class="font-bold text-green-950 hover:underline dark:text-green-50">{{ c.title }}</a>
+                        <span class="ml-2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase {% if c.status == 'published' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200{% endif %}">{{ c.get_status_display }}</span>
+                    </div>
+                    <span class="text-emerald-600 font-semibold">৳{{ c.price }} BDT</span>
+                </div>
+                {% empty %}
+                <p class="py-4 text-center text-xs text-green-900/50 dark:text-green-100/50">No courses created yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 4. ADMIN WIDGETS -->
+    {% if admin %}
+    <div class="mb-12 space-y-6">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-green-100 pb-4 dark:border-green-900/60">
+            <div>
+                <h2 class="text-xl font-bold text-green-950 dark:text-green-50">
+                    System Administration
+                </h2>
+                <p class="text-xs text-green-900/70 dark:text-green-200/70">
+                    High-level platform metrics and ledger consistency summary. All moderation happens via Django Admin.
+                </p>
+            </div>
+            <a href="{{ admin.admin_url }}" target="_blank" rel="noopener noreferrer" class="rounded-full bg-purple-600 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-purple-600/30 hover:bg-purple-700">
+                Open Django Admin &rarr;
+            </a>
+        </div>
+
+        <!-- System Stats Grid -->
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Total Users</p>
+                <p class="mt-2 text-2xl font-black text-green-950 dark:text-green-50">{{ admin.total_users }}</p>
+            </div>
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Total Notes</p>
+                <p class="mt-2 text-2xl font-black text-green-950 dark:text-green-50">{{ admin.total_notes }}</p>
+            </div>
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Total Swap Sessions</p>
+                <p class="mt-2 text-2xl font-black text-green-950 dark:text-green-50">{{ admin.total_sessions }}</p>
+            </div>
+            <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Total Nuts in System</p>
+                <p class="mt-2 text-2xl font-black text-amber-500">🌰 {{ admin.total_credits }}</p>
+            </div>
+        </div>
+
+        <!-- Ledger Integrity Audit Summary -->
+        <div class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-green-950 dark:text-green-50">Credit Ledger Integrity Check</h3>
+                    <p class="text-[11px] text-green-900/60 dark:text-green-100/60">Automated consistency check (`check_ledger`)</p>
+                </div>
+                {% if admin.check_ledger_summary.total_issues == 0 %}
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+                    ✓ All Checks Passed
+                </span>
+                {% else %}
+                <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-800 dark:bg-red-900/60 dark:text-red-200">
+                    ⚠ {{ admin.check_ledger_summary.total_issues }} Issues Detected
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-4 text-xs">
+                <div class="rounded-xl bg-green-50/50 p-3 dark:bg-neutral-800">
+                    <p class="text-[10px] font-bold uppercase text-green-800/70 dark:text-green-300/70">Negative Balances</p>
+                    <p class="mt-1 text-lg font-bold">{{ admin.check_ledger_summary.negative_balances|length }}</p>
+                </div>
+                <div class="rounded-xl bg-green-50/50 p-3 dark:bg-neutral-800">
+                    <p class="text-[10px] font-bold uppercase text-green-800/70 dark:text-green-300/70">Duplicate Signups</p>
+                    <p class="mt-1 text-lg font-bold">{{ admin.check_ledger_summary.duplicate_signups|length }}</p>
+                </div>
+                <div class="rounded-xl bg-green-50/50 p-3 dark:bg-neutral-800">
+                    <p class="text-[10px] font-bold uppercase text-green-800/70 dark:text-green-300/70">Duplicate Upload Rewards</p>
+                    <p class="mt-1 text-lg font-bold">{{ admin.check_ledger_summary.duplicate_upload_rewards|length }}</p>
+                </div>
+                <div class="rounded-xl bg-green-50/50 p-3 dark:bg-neutral-800">
+                    <p class="text-[10px] font-bold uppercase text-green-800/70 dark:text-green-300/70">Orphan Reversals</p>
+                    <p class="mt-1 text-lg font-bold">{{ admin.check_ledger_summary.orphan_reversals|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
