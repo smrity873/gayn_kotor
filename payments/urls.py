@@ -8,6 +8,7 @@ urlpatterns = [
     path("orders/", views.order_list, name="order_list"),
     path("orders/<uuid:order_id>/", views.order_detail, name="order_detail"),
     path("sandbox/<uuid:order_id>/", views.sandbox_view, name="sandbox"),
+    path("bkash/checkout/<uuid:order_id>/", views.bkash_checkout_view, name="bkash_checkout"),
     path("callback/", views.gateway_callback, name="callback"),
     path("wallet/", views.wallet_overview, name="wallet"),
     path("withdrawals/", views.withdrawals_view, name="withdrawals"),

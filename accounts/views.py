@@ -23,17 +23,20 @@ def signup(request):
         form = SignUpForm(request.POST)
         if form.is_valid():
             user = form.save()
-            send_verification_email(user, request=request)
+            sent, verify_url = send_verification_email(user, request=request)
             if user.is_active:
-                messages.success(
-                    request,
-                    _("Account created successfully! We sent a verification link to your email."),
-                )
+                if sent:
+                    msg = _("Account created successfully! We sent a verification link to your email.")
+                else:
+                    msg = _("Account created! We attempted to send a verification email.")
+                if getattr(settings, "DEBUG", False):
+                    msg += f" [Dev Link: {verify_url}]"
+                messages.success(request, msg)
             else:
-                messages.info(
-                    request,
-                    _("Account created. A lecturer account must be approved by the admin before you can log in. A verification link has also been sent to your email."),
-                )
+                msg = _("Account created. A lecturer account must be approved by the admin before you can log in. A verification link has also been sent to your email.")
+                if getattr(settings, "DEBUG", False):
+                    msg += f" [Dev Link: {verify_url}]"
+                messages.info(request, msg)
             return redirect("core:home")
     else:
         form = SignUpForm()
@@ -79,9 +82,18 @@ def resend_verification(request):
         messages.warning(request, _("Please wait a minute before requesting another verification email."))
         return redirect("core:home")
 
-    send_verification_email(request.user, request=request)
+    sent, verify_url = send_verification_email(request.user, request=request)
     cache.set(cache_key, True, timeout=60)
-    messages.success(request, _("Verification email sent! Please check your inbox."))
+    if sent:
+        msg = _("Verification email sent! Please check your inbox.")
+    else:
+        msg = _("Could not deliver email. Please check your mail server configuration.")
+    if getattr(settings, "DEBUG", False):
+        msg += f" [Dev Link: {verify_url}]"
+    if sent:
+        messages.success(request, msg)
+    else:
+        messages.warning(request, msg)
     return redirect("core:home")
 
 

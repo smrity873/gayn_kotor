@@ -9,122 +9,240 @@
     #game-container {
         position: relative;
         width: 100%;
-        height: 520px;
-        max-height: 70vh;
+        height: 540px;
+        max-height: 72vh;
         overflow: hidden;
-        background: #142e1b;
+        background: radial-gradient(circle at 70% 30%, #1e452a 0%, #0d2113 100%);
         isolation: isolate;
-        border-radius: 0 0 1.5rem 1.5rem;
+        border-radius: 0 0 1.75rem 1.75rem;
+        box-shadow: inset 0 -20px 40px rgba(0, 0, 0, 0.4), 0 10px 30px -10px rgba(16, 185, 129, 0.15);
     }
 
     @media (max-width: 768px) {
         #game-container {
-            height: 340px;
-            min-height: 280px;
+            height: 360px;
+            min-height: 300px;
         }
     }
 
-    #replay-animation {
+    /* Top Controls Bar inside Game Canvas */
+    .game-hud-controls {
         position: absolute;
-        z-index: 20;
-        right: 16px;
-        bottom: 16px;
+        z-index: 25;
+        right: 18px;
+        bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .hud-btn {
         padding: 8px 16px;
-        border: 1px solid rgba(255, 255, 255, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: 9999px;
-        background: rgba(18, 48, 25, 0.85);
+        background: rgba(14, 38, 20, 0.82);
         color: #ffffff;
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
-        backdrop-filter: blur(8px);
-        transition: background 0.2s, transform 0.1s;
+        backdrop-filter: blur(10px);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     }
 
-    #replay-animation:hover {
-        background: rgba(30, 80, 40, 0.95);
-        transform: scale(1.03);
+    .hud-btn:hover {
+        background: rgba(22, 60, 32, 0.95);
+        border-color: rgba(110, 231, 183, 0.6);
+        transform: translateY(-2px) scale(1.02);
     }
 
-    #replay-animation:active {
-        transform: scale(0.97);
+    .hud-btn:active {
+        transform: translateY(1px) scale(0.97);
     }
 
-    /* Keyframes for Squirrel and Scene */
-    @keyframes tailSway {
+    /* Ambient Firefly Drifting */
+    @keyframes fireflyPulse {
+        0%, 100% { opacity: 0.15; transform: translate(0, 0) scale(0.8); }
+        50% { opacity: 0.95; transform: translate(15px, -20px) scale(1.2); }
+    }
+
+    @keyframes fireflyPulseAlt {
+        0%, 100% { opacity: 0.2; transform: translate(0, 0) scale(1); }
+        50% { opacity: 0.9; transform: translate(-20px, -15px) scale(1.3); }
+    }
+
+    .firefly-1 { animation: fireflyPulse 5s ease-in-out infinite; }
+    .firefly-2 { animation: fireflyPulseAlt 6.5s ease-in-out infinite 1s; }
+    .firefly-3 { animation: fireflyPulse 7s ease-in-out infinite 2.5s; }
+    .firefly-4 { animation: fireflyPulseAlt 5.5s ease-in-out infinite 3.5s; }
+
+    /* Falling Autumn Leaves */
+    @keyframes leafDrift {
+        0% { transform: translate(0, -20px) rotate(0deg); opacity: 0; }
+        15% { opacity: 0.85; }
+        85% { opacity: 0.85; }
+        100% { transform: translate(-80px, 480px) rotate(380deg); opacity: 0; }
+    }
+
+    .falling-leaf {
+        animation: leafDrift 14s linear infinite;
+        transform-origin: center center;
+    }
+
+    /* Squirrel Idle Breathing & Ear Twitch */
+    @keyframes squirrelBreathe {
+        0%, 100% { transform: scale(1) translate(0, 0); }
+        50% { transform: scale(1.015, 0.985) translate(0, 0.5px); }
+    }
+
+    @keyframes earTwitch {
+        0%, 90%, 100% { transform: rotate(0deg); }
+        93% { transform: rotate(-8deg); }
+        96% { transform: rotate(6deg); }
+    }
+
+    .squirrel-idle-breathe {
+        animation: squirrelBreathe 3.5s ease-in-out infinite;
+        transform-origin: 32px 50px;
+    }
+
+    .ear-left {
+        transform-origin: 16px -6px;
+        animation: earTwitch 6s ease-in-out infinite;
+    }
+
+    .ear-right {
+        transform-origin: 27px -6px;
+        animation: earTwitch 6s ease-in-out infinite 0.2s;
+    }
+
+    /* Tail Sway */
+    @keyframes tailSwaySoft {
         0%, 100% { transform: rotate(0deg); }
-        50% { transform: rotate(6deg); }
+        50% { transform: rotate(8deg); }
     }
 
     .tail-sway {
-        transform-origin: 485px 380px;
-        animation: tailSway 3s ease-in-out infinite;
+        transform-origin: 45px 45px;
+        animation: tailSwaySoft 2.8s ease-in-out infinite;
     }
 
+    /* Squirrel Hop & Interactions */
     @keyframes squirrelHop {
         0%, 100% { transform: translate(0, 0) scale(1); }
-        30% { transform: translate(-30px, -45px) scale(1.05); }
-        55% { transform: translate(-60px, 0) scale(0.95, 1.05); }
-        80% { transform: translate(-30px, -20px) scale(1.02); }
+        25% { transform: translate(-25px, -50px) scale(1.08, 0.92); }
+        50% { transform: translate(-60px, 0) scale(0.92, 1.08); }
+        75% { transform: translate(-30px, -25px) scale(1.03); }
     }
 
     .squirrel-bounce {
-        animation: squirrelHop 1s cubic-bezier(0.25, 1, 0.5, 1);
+        animation: squirrelHop 1.1s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    @keyframes squirrelJoySpin {
+        0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        30% { transform: translate(0, -60px) scale(1.15) rotate(-15deg); }
+        60% { transform: translate(0, -65px) scale(1.1) rotate(345deg); }
+        85% { transform: translate(0, -10px) scale(0.95, 1.05) rotate(360deg); }
+        100% { transform: translate(0, 0) scale(1) rotate(360deg); }
+    }
+
+    .squirrel-joy-spin {
+        animation: squirrelJoySpin 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     @keyframes squirrelRunToHollow {
         0% { transform: translate(0, 0); }
-        40% { transform: translate(-120px, -20px); }
-        60% { transform: translate(-120px, -20px); }
+        35% { transform: translate(-130px, -25px) scale(1.05); }
+        65% { transform: translate(-130px, -25px) scale(1.05); }
         100% { transform: translate(0, 0); }
     }
 
     .squirrel-deposit {
-        animation: squirrelRunToHollow 1.2s ease-in-out;
+        animation: squirrelRunToHollow 1.25s ease-in-out;
     }
 
     @keyframes squirrelRunFromHollow {
         0% { transform: translate(0, 0); }
-        35% { transform: translate(-120px, -15px); }
-        65% { transform: translate(-120px, -15px); }
+        35% { transform: translate(-130px, -20px); }
+        65% { transform: translate(-130px, -20px); }
         100% { transform: translate(0, 0); }
     }
 
     .squirrel-retrieve {
-        animation: squirrelRunFromHollow 1.2s ease-in-out;
+        animation: squirrelRunFromHollow 1.25s ease-in-out;
     }
 
+    /* Parabolic Nut Flights */
+    @keyframes nutParabolicIn {
+        0% { opacity: 0; transform: translate(440px, 340px) scale(0.6) rotate(0deg); }
+        20% { opacity: 1; transform: translate(370px, 240px) scale(1.2) rotate(90deg); }
+        70% { opacity: 1; transform: translate(280px, 260px) scale(1) rotate(220deg); }
+        100% { opacity: 0; transform: translate(245px, 305px) scale(0.8) rotate(360deg); }
+    }
+
+    .nut-flying-in {
+        animation: nutParabolicIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes nutParabolicOut {
+        0% { opacity: 0; transform: translate(245px, 305px) scale(0.8) rotate(0deg); }
+        20% { opacity: 1; transform: translate(290px, 230px) scale(1.2) rotate(-90deg); }
+        70% { opacity: 1; transform: translate(400px, 270px) scale(1) rotate(-220deg); }
+        100% { opacity: 0; transform: translate(520px, 350px) scale(0.6) rotate(-360deg); }
+    }
+
+    .nut-flying-out {
+        animation: nutParabolicOut 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Floating Transaction Badge Popup */
+    @keyframes floatTxBadge {
+        0% { opacity: 0; transform: translate(0, 10px) scale(0.8); }
+        25% { opacity: 1; transform: translate(0, -15px) scale(1.1); }
+        75% { opacity: 1; transform: translate(0, -35px) scale(1); }
+        100% { opacity: 0; transform: translate(0, -55px) scale(0.9); }
+    }
+
+    .tx-badge-float {
+        animation: floatTxBadge 1.8s ease-out forwards;
+    }
+
+    /* Sparkles Burst */
     @keyframes sparkleBurst {
-        0% { opacity: 0; transform: scale(0.3) rotate(0deg); }
-        50% { opacity: 1; transform: scale(1.2) rotate(90deg); }
-        100% { opacity: 0; transform: scale(1.5) rotate(180deg); }
+        0% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+        50% { opacity: 1; transform: scale(1.3) rotate(90deg); }
+        100% { opacity: 0; transform: scale(1.6) rotate(180deg); }
     }
 
     .sparkle-anim {
         animation: sparkleBurst 1s ease-out forwards;
     }
 
-    @keyframes nutFlyIn {
-        0% { opacity: 1; transform: translate(0, 0) scale(1); }
-        70% { opacity: 1; transform: translate(-120px, -60px) scale(1.1); }
-        100% { opacity: 0; transform: translate(-160px, -40px) scale(0.8); }
+    /* Hollow Cavity Golden Glow Pulse */
+    @keyframes cavityGlow {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.85; filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.7)); }
     }
 
-    .nut-flying-in {
-        animation: nutFlyIn 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    .hollow-golden-aura {
+        animation: cavityGlow 3s ease-in-out infinite;
     }
 
-    @keyframes nutFlyOut {
-        0% { opacity: 0; transform: translate(-160px, -40px) scale(0.8); }
-        40% { opacity: 1; transform: translate(-120px, -70px) scale(1.1); }
-        100% { opacity: 0; transform: translate(60px, -30px) scale(0.6); }
+    /* Squirrel cursor interactive affordance */
+    #squirrel-actor {
+        cursor: pointer;
+        transition: filter 0.2s ease;
     }
 
-    .nut-flying-out {
-        animation: nutFlyOut 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    #squirrel-actor:hover {
+        filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.45));
     }
 
-    /* Accessibility: Reduced motion skips to final state */
+    /* Accessibility */
     @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after {
             animation-duration: 0.001ms !important;
@@ -137,100 +255,152 @@
 <section>
     <div id="game-container">
         <!-- SVG Nut Hollow Scene -->
-        <svg id="hollow-scene" viewBox="0 0 800 500" class="w-full h-full select-none" preserveAspectRatio="xMidYMid meet" aria-label="Nut Hollow animated scene">
+        <svg id="hollow-scene" viewBox="0 0 800 500" class="w-full h-full select-none" preserveAspectRatio="xMidYMid meet" aria-label="Nut Hollow interactive animated game scene">
             <defs>
                 <!-- Sky gradient -->
                 <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#194226" />
-                    <stop offset="60%" stop-color="#245a35" />
+                    <stop offset="0%" stop-color="#0a1a0f" />
+                    <stop offset="45%" stop-color="#14341e" />
+                    <stop offset="85%" stop-color="#245a35" />
                     <stop offset="100%" stop-color="#3b7a4a" />
                 </linearGradient>
 
                 <!-- Distant foliage -->
                 <linearGradient id="hillsGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#1f4b2b" />
-                    <stop offset="100%" stop-color="#163820" />
+                    <stop offset="0%" stop-color="#194226" />
+                    <stop offset="100%" stop-color="#0e2415" />
                 </linearGradient>
 
                 <!-- Trunk gradient -->
                 <linearGradient id="trunkGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stop-color="#3e2311" />
-                    <stop offset="35%" stop-color="#5a341a" />
-                    <stop offset="70%" stop-color="#442613" />
-                    <stop offset="100%" stop-color="#2a160a" />
+                    <stop offset="0%" stop-color="#2c160a" />
+                    <stop offset="30%" stop-color="#4a2814" />
+                    <stop offset="65%" stop-color="#5a341a" />
+                    <stop offset="90%" stop-color="#381d0c" />
+                    <stop offset="100%" stop-color="#220f06" />
                 </linearGradient>
 
                 <!-- Hollow cavity gradient -->
-                <radialGradient id="hollowDepth" cx="45%" cy="50%" r="50%">
-                    <stop offset="0%" stop-color="#0a0502" />
-                    <stop offset="60%" stop-color="#140a05" />
-                    <stop offset="100%" stop-color="#2c160b" />
+                <radialGradient id="hollowDepth" cx="42%" cy="48%" r="52%">
+                    <stop offset="0%" stop-color="#070302" />
+                    <stop offset="65%" stop-color="#160904" />
+                    <stop offset="100%" stop-color="#31190d" />
                 </radialGradient>
 
-                <!-- Acorn symbol -->
+                <!-- Golden Aura Gradient -->
+                <radialGradient id="goldenAuraGrad" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.6" />
+                    <stop offset="60%" stop-color="#d97706" stop-opacity="0.25" />
+                    <stop offset="100%" stop-color="#b45309" stop-opacity="0" />
+                </radialGradient>
+
+                <!-- Firefly Light Gradient -->
+                <radialGradient id="fireflyGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+                    <stop offset="40%" stop-color="#fef08a" stop-opacity="0.8" />
+                    <stop offset="80%" stop-color="#a3e635" stop-opacity="0.3" />
+                    <stop offset="100%" stop-color="#65a30d" stop-opacity="0" />
+                </radialGradient>
+
+                <!-- Acorn symbol with enhanced 3D lighting -->
                 <g id="acorn-symbol">
                     <!-- Cap -->
-                    <path d="M -8 -3 Q 0 -11 8 -3 Q 0 -4 -8 -3 Z" fill="#603010" />
-                    <path d="M 0 -10 Q 2 -14 4 -13" stroke="#482208" stroke-width="2" fill="none" stroke-linecap="round" />
+                    <path d="M -9 -3 Q 0 -13 9 -3 Q 0 -4 -9 -3 Z" fill="#582a0b" />
+                    <path d="M 0 -11 Q 3 -16 5 -15" stroke="#3e1a06" stroke-width="2.2" fill="none" stroke-linecap="round" />
+                    <!-- Cap Crosshatch texture -->
+                    <path d="M -6 -4 Q 0 -9 6 -4" stroke="#78350f" stroke-width="0.9" fill="none" opacity="0.6" />
+                    <path d="M -4 -7 Q 0 -10 4 -7" stroke="#78350f" stroke-width="0.8" fill="none" opacity="0.5" />
                     <!-- Body -->
-                    <path d="M -7 -2 C -7 7 0 13 0 13 C 0 13 7 7 7 -2 Z" fill="#d97706" />
+                    <path d="M -8 -2 C -8 8 0 14 0 14 C 0 14 8 8 8 -2 Z" fill="#d97706" />
+                    <!-- 3D Shadow -->
+                    <path d="M 1 0 C 4 4 6 8 5 13 C 2 13 0 14 0 14 C 0 14 8 8 8 -2 Z" fill="#b45309" opacity="0.5" />
                     <!-- Highlight -->
-                    <path d="M -5 0 C -5 5 -1 9 -1 9" stroke="#fcd34d" stroke-width="1.2" fill="none" opacity="0.7" stroke-linecap="round" />
+                    <path d="M -6 0 C -6 6 -2 10 -2 10" stroke="#fef08a" stroke-width="1.4" fill="none" opacity="0.85" stroke-linecap="round" />
                 </g>
 
                 <!-- Sparkle star -->
                 <g id="sparkle-symbol">
-                    <path d="M 0 -10 Q 0 0 10 0 Q 0 0 0 10 Q 0 0 -10 0 Q 0 0 0 -10 Z" fill="#fef08a" />
+                    <path d="M 0 -12 Q 0 0 12 0 Q 0 0 0 12 Q 0 0 -12 0 Q 0 0 0 -12 Z" fill="#fef08a" />
+                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
+                </g>
+
+                <!-- Leaf Symbol -->
+                <g id="leaf-symbol">
+                    <path d="M 0 0 C 8 -10 16 -8 20 0 C 16 10 8 12 0 0 Z" fill="#d97706" opacity="0.8" />
+                    <line x1="2" y1="0" x2="18" y2="0" stroke="#92400e" stroke-width="0.8" />
                 </g>
             </defs>
 
             <!-- Background Sky & Forest -->
             <rect width="800" height="500" fill="url(#skyGrad)" />
 
-            <!-- Sunbeams / Ambient Glow -->
-            <circle cx="680" cy="80" r="140" fill="#fef3c7" opacity="0.12" />
-            <polygon points="680,80 180,500 350,500" fill="#fef3c7" opacity="0.04" />
-            <polygon points="680,80 400,500 580,500" fill="#fef3c7" opacity="0.03" />
+            <!-- Sunbeams & Ambient Forest Glow -->
+            <circle cx="700" cy="70" r="160" fill="#fef3c7" opacity="0.14" />
+            <polygon points="700,70 160,500 360,500" fill="#fef3c7" opacity="0.04" />
+            <polygon points="700,70 380,500 620,500" fill="#fef3c7" opacity="0.035" />
 
             <!-- Distant hills -->
-            <path d="M -20 380 Q 200 300 480 370 T 820 340 L 820 500 L -20 500 Z" fill="url(#hillsGrad)" opacity="0.8" />
+            <path d="M -20 370 Q 200 290 480 360 T 820 330 L 820 500 L -20 500 Z" fill="url(#hillsGrad)" opacity="0.85" />
+
+            <!-- Ambient Drifting Fireflies -->
+            <circle cx="210" cy="220" r="14" fill="url(#fireflyGlow)" class="firefly-1" />
+            <circle cx="620" cy="180" r="12" fill="url(#fireflyGlow)" class="firefly-2" />
+            <circle cx="380" cy="380" r="16" fill="url(#fireflyGlow)" class="firefly-3" />
+            <circle cx="510" cy="290" r="11" fill="url(#fireflyGlow)" class="firefly-4" />
+            <circle cx="150" cy="390" r="13" fill="url(#fireflyGlow)" class="firefly-2" />
+
+            <!-- Falling Leaves Drift Layer -->
+            <g class="falling-leaf" style="animation-delay: 0s;">
+                <use href="#leaf-symbol" x="650" y="20" transform="scale(0.8)" />
+            </g>
+            <g class="falling-leaf" style="animation-delay: 4.5s; animation-duration: 16s;">
+                <use href="#leaf-symbol" x="520" y="-10" transform="scale(0.65) rotate(45)" />
+            </g>
+            <g class="falling-leaf" style="animation-delay: 9s; animation-duration: 18s;">
+                <use href="#leaf-symbol" x="720" y="40" transform="scale(0.7) rotate(-30)" />
+            </g>
 
             <!-- Tree Trunk -->
             <path d="M 120 500 Q 140 340 170 230 Q 190 120 220 0 L 330 0 Q 300 130 320 250 Q 340 370 380 500 Z" fill="url(#trunkGrad)" />
             <!-- Bark texture lines -->
-            <path d="M 170 470 Q 185 350 205 240" stroke="#33190a" stroke-width="3" fill="none" opacity="0.5" />
-            <path d="M 285 480 Q 275 360 265 240" stroke="#251207" stroke-width="4" fill="none" opacity="0.6" />
-            <path d="M 230 180 Q 240 90 250 10" stroke="#33190a" stroke-width="3" fill="none" opacity="0.4" />
+            <path d="M 165 470 Q 180 350 200 240" stroke="#251207" stroke-width="3" fill="none" opacity="0.6" />
+            <path d="M 285 480 Q 275 360 265 240" stroke="#1f0e05" stroke-width="4" fill="none" opacity="0.7" />
+            <path d="M 230 180 Q 240 90 250 10" stroke="#2a1408" stroke-width="3" fill="none" opacity="0.5" />
+            <path d="M 340 450 Q 330 340 310 260" stroke="#1c0b04" stroke-width="2.5" fill="none" opacity="0.6" />
 
-            <!-- Big Branch extending right -->
-            <path d="M 315 220 Q 420 180 540 195 Q 430 225 325 260 Z" fill="#442613" />
+            <!-- Big Branch extending right (where squirrel sits) -->
+            <path d="M 315 220 Q 430 180 570 205 Q 440 235 325 260 Z" fill="#3e2311" />
+            <path d="M 335 240 Q 430 205 520 215" stroke="#241106" stroke-width="2" fill="none" opacity="0.6" />
 
-            <!-- Hollow Cavity -->
+            <!-- Hollow Cavity Glow (Milestone / Aura Ring) -->
+            <circle id="hollow-aura" cx="245" cy="285" r="75" fill="url(#goldenAuraGrad)" class="hollow-golden-aura" opacity="0.4" />
+
             <!-- Outer hollow border/wood lip -->
-            <ellipse cx="245" cy="285" rx="52" ry="68" fill="#381d0c" />
+            <ellipse cx="245" cy="285" rx="54" ry="70" fill="#381d0c" />
             <!-- Inner cavity -->
-            <ellipse cx="245" cy="285" rx="44" ry="58" fill="url(#hollowDepth)" />
+            <ellipse cx="245" cy="285" rx="46" ry="60" fill="url(#hollowDepth)" />
             <!-- Hollow bottom wooden ledge -->
-            <path d="M 205 320 Q 245 342 285 320 Q 245 330 205 320 Z" fill="#5a341a" />
+            <path d="M 202 320 Q 245 344 288 320 Q 245 332 202 320 Z" fill="#5a341a" />
 
             <!-- Group for nuts drawn in and around the hollow (up to 30) -->
             <g id="hollow-nuts-group"></g>
 
             <!-- Foreground grass & meadow roots -->
-            <path d="M -10 440 Q 180 410 380 435 Q 580 460 810 420 L 810 500 L -10 500 Z" fill="#1b4325" />
-            <path d="M 80 460 Q 220 440 370 470 Q 550 495 810 450 L 810 500 L 80 500 Z" fill="#14361c" />
+            <path d="M -10 435 Q 180 405 380 430 Q 580 455 810 415 L 810 500 L -10 500 Z" fill="#1b4325" />
+            <path d="M 80 455 Q 220 435 370 465 Q 550 490 810 445 L 810 500 L 80 500 Z" fill="#14361c" />
 
-            <!-- Roots sprawling -->
+            <!-- Sprawling Roots -->
             <path d="M 140 480 Q 90 490 30 500 L 80 500 Q 120 492 160 485 Z" fill="#3e2311" />
             <path d="M 350 480 Q 430 490 500 500 L 440 500 Q 390 490 330 485 Z" fill="#3e2311" />
 
-            <!-- Squirrel Character -->
-            <g id="squirrel-actor" transform="translate(440, 310)">
+            <!-- Interactive Squirrel Character -->
+            <g id="squirrel-actor" transform="translate(440, 310)" class="squirrel-idle-breathe">
                 <!-- Tail with sway animation -->
                 <g class="tail-sway">
-                    <path d="M 45 45 C 75 40 100 15 95 -15 C 90 -45 55 -60 45 -45 C 35 -30 45 10 30 45 Z" fill="#b45309" />
-                    <!-- Tail fluff inner -->
-                    <path d="M 48 35 C 70 30 85 10 82 -12 C 78 -35 55 -45 48 -35 Z" fill="#d97706" />
+                    <path d="M 45 45 C 75 40 102 12 96 -18 C 90 -48 52 -62 42 -46 C 32 -30 44 10 28 45 Z" fill="#b45309" />
+                    <!-- Tail fluff inner with golden accent -->
+                    <path d="M 48 35 C 72 30 88 8 84 -15 C 80 -38 54 -48 46 -36 Z" fill="#d97706" />
+                    <path d="M 46 22 C 60 18 72 0 68 -15" stroke="#fcd34d" stroke-width="1.8" fill="none" opacity="0.65" stroke-linecap="round" />
                 </g>
 
                 <!-- Back Foot -->
@@ -246,26 +416,43 @@
 
                 <!-- Squirrel Head -->
                 <circle cx="20" cy="14" r="18" fill="#b45309" />
-                <!-- Squirrel Ears -->
-                <polygon points="12,0 16,-14 23,2" fill="#92400e" />
-                <polygon points="14,-2 17,-11 21,-1" fill="#fde68a" />
-                <polygon points="22,-1 27,-13 32,2" fill="#92400e" />
+
+                <!-- Squirrel Ears with twitch -->
+                <g class="ear-left">
+                    <polygon points="12,0 16,-15 23,2" fill="#92400e" />
+                    <polygon points="14,-2 17,-12 21,-1" fill="#fde68a" />
+                </g>
+                <g class="ear-right">
+                    <polygon points="22,-1 27,-14 33,2" fill="#92400e" />
+                    <polygon points="24,-1 28,-11 31,1" fill="#fde68a" />
+                </g>
 
                 <!-- Cheeks & Snout -->
                 <ellipse cx="12" cy="18" rx="8" ry="7" fill="#fde68a" />
                 <!-- Tiny Nose -->
                 <circle cx="6" cy="16" r="3" fill="#451a03" />
 
-                <!-- Cute Eye -->
-                <circle cx="18" cy="11" r="4.5" fill="#1c1917" />
-                <circle cx="16.5" cy="9.5" r="1.8" fill="#ffffff" />
-                <circle cx="19.5" cy="12.5" r="0.8" fill="#ffffff" />
+                <!-- Interactive Eye (Tracks Mouse Position) -->
+                <circle cx="18" cy="11" r="5" fill="#1c1917" />
+                <!-- Eye Pupil & Glints that track cursor -->
+                <g id="squirrel-eye-pupil" transform="translate(0, 0)">
+                    <circle cx="18" cy="11" r="2.8" fill="#09090b" />
+                    <circle cx="16.5" cy="9.5" r="1.6" fill="#ffffff" />
+                    <circle cx="19.2" cy="12.2" r="0.75" fill="#ffffff" />
+                </g>
 
                 <!-- Arms / Paws holding an acorn -->
                 <g id="squirrel-paws">
                     <ellipse cx="16" cy="36" rx="6" ry="4" fill="#92400e" transform="rotate(-15 16 36)" />
                     <!-- Nut held in paws -->
                     <use href="#acorn-symbol" x="12" y="38" transform="scale(0.85)" />
+                </g>
+
+                <!-- Interactive Speech / Heart Bubble -->
+                <g id="squirrel-click-bubble" opacity="0" transform="translate(10, -45)">
+                    <rect x="-15" y="-12" width="36" height="24" rx="12" fill="#ffffff" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.3))" />
+                    <polygon points="0,12 8,12 2,18" fill="#ffffff" />
+                    <text x="3" y="5" font-size="14" text-anchor="middle">❤️</text>
                 </g>
             </g>
 
@@ -275,38 +462,49 @@
             <!-- Sparkles Layer for PURCHASE celebration -->
             <g id="sparkles-layer" transform="translate(460, 310)"></g>
 
-            <!-- Canopy Leafy Overhang -->
-            <path d="M 0 0 L 800 0 L 800 60 Q 720 120 640 50 Q 560 130 480 60 Q 400 120 320 50 Q 240 130 160 50 Q 80 110 0 40 Z" fill="#14361c" />
-            <path d="M 0 0 L 800 0 L 800 35 Q 700 80 620 30 Q 520 85 420 35 Q 320 80 220 30 Q 120 75 0 25 Z" fill="#1b4d27" opacity="0.85" />
+            <!-- Floating Transaction Amount Layer -->
+            <g id="tx-badge-layer" transform="translate(245, 270)"></g>
+
+            <!-- Canopy Leafy Overhang with layered depth -->
+            <path d="M 0 0 L 800 0 L 800 65 Q 720 125 640 55 Q 560 135 480 65 Q 400 125 320 55 Q 240 135 160 55 Q 80 115 0 45 Z" fill="#102e18" />
+            <path d="M 0 0 L 800 0 L 800 40 Q 700 85 620 35 Q 520 90 420 40 Q 320 85 220 35 Q 120 80 0 30 Z" fill="#1b4d27" opacity="0.9" />
         </svg>
 
         <!-- Overlay Title -->
         <div class="pointer-events-none absolute left-6 top-5 z-10 sm:left-8 sm:top-6">
-            <h1 class="text-2xl font-bold text-white sm:text-4xl [text-shadow:0_2px_10px_rgba(0,0,0,.75)]">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-300 backdrop-blur-md border border-emerald-400/30">
+                    Live Hollow
+                </span>
+                <span class="text-xs text-emerald-200/75 [text-shadow:0_1px_4px_rgba(0,0,0,.6)]">
+                    Click squirrel to interact!
+                </span>
+            </div>
+            <h1 class="mt-1 text-2xl font-bold text-white sm:text-4xl [text-shadow:0_2px_12px_rgba(0,0,0,.85)]">
                 My Nut Hollow
             </h1>
-            <p class="mt-1 text-sm text-emerald-100 sm:text-base [text-shadow:0_2px_8px_rgba(0,0,0,.75)]">
-                Every nut you earn is stored in your hollow.
+            <p class="mt-1 text-sm text-emerald-100 sm:text-base [text-shadow:0_2px_8px_rgba(0,0,0,.8)]">
+                Every nut you earn is safely stored in your forest hollow.
             </p>
         </div>
 
         <!-- Floating Balance Card (Desktop) -->
-        <div class="absolute right-8 top-1/2 z-10 hidden w-72 -translate-y-1/2 rounded-3xl border border-white/30 bg-black/40 p-6 text-center text-white shadow-2xl backdrop-blur-md lg:block">
+        <div class="absolute right-8 top-1/2 z-10 hidden w-72 -translate-y-1/2 rounded-3xl border border-white/30 bg-black/45 p-6 text-center text-white shadow-2xl backdrop-blur-md lg:block">
             <p class="text-xs font-bold uppercase tracking-widest text-emerald-300">
                 Your Balance
             </p>
             <p class="mt-2 text-6xl font-extrabold text-amber-300 drop-shadow">
                 🌰 <span id="balance-counter-desktop" data-balance="{{ balance|default:0 }}">0</span>
             </p>
-            <p class="mt-2 text-sm text-emerald-100">
+            <p class="mt-2 text-sm text-emerald-100 font-medium">
                 nuts stored in hollow
             </p>
             <p class="mt-4 text-xs text-emerald-200/80">
                 Displaying up to 30 nuts in tree hollow
             </p>
             <div class="mt-5 flex flex-col gap-2">
-                <a href="/payments/credits/buy/" class="inline-flex items-center justify-center rounded-full bg-amber-500 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-stone-900 shadow-lg shadow-amber-500/30 transition hover:bg-amber-400">
-                    Buy nuts
+                <a href="/payments/credits/buy/" class="inline-flex items-center justify-center rounded-full bg-amber-500 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-stone-900 shadow-lg shadow-amber-500/30 transition hover:bg-amber-400 hover:scale-[1.02]">
+                    Buy nuts (bKash)
                 </a>
                 <a href="/credits/ledger/" class="inline-flex items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-950/60 px-4 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-900/80">
                     View full ledger &rarr;
@@ -314,10 +512,17 @@
             </div>
         </div>
 
-        <!-- Replay Button -->
-        <button id="replay-animation" type="button" aria-label="Replay recent credit animation">
-            ↺ Replay
-        </button>
+        <!-- Interactive HUD Controls Bar (Bottom Right) -->
+        <div class="game-hud-controls">
+            <!-- Audio FX Toggle -->
+            <button id="toggle-sound-btn" type="button" class="hud-btn" aria-label="Toggle game audio sound effects">
+                <span id="sound-icon">🔊</span> <span id="sound-label" class="hidden sm:inline">Sound</span>
+            </button>
+            <!-- Replay Button -->
+            <button id="replay-animation" type="button" class="hud-btn" aria-label="Replay recent credit animation">
+                <span>↺</span> <span>Replay</span>
+            </button>
+        </div>
     </div>
 
     <!-- Mobile Balance Card (Small Screens) -->
@@ -434,16 +639,116 @@
 
     const hollowNutsGroup = document.getElementById("hollow-nuts-group");
     const squirrelActor = document.getElementById("squirrel-actor");
+    const squirrelEyePupil = document.getElementById("squirrel-eye-pupil");
+    const clickBubble = document.getElementById("squirrel-click-bubble");
     const flyingNutsLayer = document.getElementById("flying-nuts-layer");
     const sparklesLayer = document.getElementById("sparkles-layer");
+    const txBadgeLayer = document.getElementById("tx-badge-layer");
+    const hollowAura = document.getElementById("hollow-aura");
     const replayBtn = document.getElementById("replay-animation");
+    const soundBtn = document.getElementById("toggle-sound-btn");
+    const soundIcon = document.getElementById("sound-icon");
+    const soundLabel = document.getElementById("sound-label");
     const desktopCounter = document.getElementById("balance-counter-desktop");
     const mobileCounter = document.getElementById("balance-counter-mobile");
+    const gameContainer = document.getElementById("game-container");
+    const hollowScene = document.getElementById("hollow-scene");
 
     let currentBalance = 0;
     let targetBalance = 0;
     let animationQueue = [];
     let isProcessingQueue = false;
+    let soundEnabled = true;
+
+    // Check localStorage for sound preference
+    try {
+        const storedSound = localStorage.getItem("hollow_sound_enabled");
+        if (storedSound !== null) {
+            soundEnabled = (storedSound === "true");
+        }
+    } catch (e) {}
+
+    function updateSoundButton() {
+        if (!soundIcon) return;
+        soundIcon.textContent = soundEnabled ? "🔊" : "🔇";
+        if (soundLabel) soundLabel.textContent = soundEnabled ? "Sound" : "Muted";
+    }
+    updateSoundButton();
+
+    if (soundBtn) {
+        soundBtn.addEventListener("click", function () {
+            soundEnabled = !soundEnabled;
+            try { localStorage.setItem("hollow_sound_enabled", String(soundEnabled)); } catch (e) {}
+            updateSoundButton();
+            if (soundEnabled) playChimeSound(600, 0.08);
+        });
+    }
+
+    // Web Audio API Synthesizer (pure browser code, no external files)
+    let audioCtx = null;
+    function getAudioContext() {
+        if (!soundEnabled) return null;
+        try {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) audioCtx = new AudioContextClass();
+            }
+            if (audioCtx && audioCtx.state === "suspended") {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function playChimeSound(freq, duration) {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        try {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq || 520, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime((freq || 520) * 1.5, ctx.currentTime + (duration || 0.15));
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (duration || 0.15));
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + (duration || 0.15));
+        } catch (e) {}
+    }
+
+    function playWoodPopSound() {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        try {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(180, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.08);
+        } catch (e) {}
+    }
+
+    function playSquirrelChirp() {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        try {
+            [0, 0.09, 0.18].forEach(function (delay, idx) {
+                setTimeout(function () {
+                    playChimeSound(800 + idx * 200, 0.07);
+                }, delay * 1000);
+            });
+        } catch (e) {}
+    }
 
     // Check prefers-reduced-motion
     function isReducedMotion() {
@@ -454,6 +759,55 @@
     function updateCounterDisplays(val) {
         if (desktopCounter) desktopCounter.textContent = val;
         if (mobileCounter) mobileCounter.textContent = val;
+        // Update Hollow Golden Aura if balance is high
+        if (hollowAura) {
+            hollowAura.style.opacity = val > 20 ? "0.8" : "0.3";
+        }
+    }
+
+    // Interactive Squirrel Eye Tracking
+    if (gameContainer && squirrelEyePupil) {
+        gameContainer.addEventListener("mousemove", function (e) {
+            if (isReducedMotion()) return;
+            const rect = gameContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            // Squirrel head center roughly at (rect.width * 0.57, rect.height * 0.65)
+            const squirrelX = rect.width * 0.57;
+            const squirrelY = rect.height * 0.65;
+            const dx = mouseX - squirrelX;
+            const dy = mouseY - squirrelY;
+            const angle = Math.atan2(dy, dx);
+            const dist = Math.min(Math.hypot(dx, dy) / 80, 2.8);
+            const offsetX = Math.cos(angle) * dist;
+            const offsetY = Math.sin(angle) * dist;
+            squirrelEyePupil.setAttribute("transform", `translate(${offsetX.toFixed(2)}, ${offsetY.toFixed(2)})`);
+        });
+    }
+
+    // Interactive Squirrel Click / Tap Interaction
+    if (squirrelActor) {
+        squirrelActor.addEventListener("click", function () {
+            if (isReducedMotion()) return;
+            playSquirrelChirp();
+            squirrelActor.classList.remove("squirrel-joy-spin", "squirrel-bounce");
+            void squirrelActor.offsetWidth;
+            squirrelActor.classList.add("squirrel-joy-spin");
+
+            if (clickBubble) {
+                clickBubble.style.opacity = "1";
+                clickBubble.style.transition = "opacity 0.2s, transform 0.4s";
+                clickBubble.setAttribute("transform", "translate(10, -55)");
+                setTimeout(function () {
+                    clickBubble.style.opacity = "0";
+                    clickBubble.setAttribute("transform", "translate(10, -45)");
+                }, 1400);
+            }
+
+            setTimeout(function () {
+                squirrelActor.classList.remove("squirrel-joy-spin");
+            }, 950);
+        });
     }
 
     // Draw min(balance, 30) nuts in the hollow
@@ -469,7 +823,7 @@
             useEl.setAttribute("href", "#acorn-symbol");
             useEl.setAttribute("x", pos.x);
             useEl.setAttribute("y", pos.y);
-            // Slight jitter for natural look
+            // Organic jitter for natural look
             const rot = ((i * 47) % 50) - 25;
             useEl.setAttribute("transform", `rotate(${rot} ${pos.x} ${pos.y})`);
             hollowNutsGroup.appendChild(useEl);
@@ -516,7 +870,8 @@
             { x: 30, y: -40, delay: 100 },
             { x: 0, y: -60, delay: 150 },
             { x: -50, y: 10, delay: 50 },
-            { x: 40, y: 10, delay: 200 }
+            { x: 40, y: 10, delay: 200 },
+            { x: -10, y: -80, delay: 250 }
         ];
 
         sparkleCoords.forEach(function (c) {
@@ -532,7 +887,30 @@
 
         setTimeout(function () {
             sparklesLayer.innerHTML = "";
-        }, 1200);
+        }, 1300);
+    }
+
+    // Floating Transaction Amount Badge
+    function showTransactionBadge(amount) {
+        if (!txBadgeLayer || isReducedMotion()) return;
+        txBadgeLayer.innerHTML = "";
+
+        const textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const isPos = amount > 0;
+        textEl.textContent = (isPos ? `+${amount} 🌰` : `${amount} 🌰`);
+        textEl.setAttribute("x", "0");
+        textEl.setAttribute("y", "0");
+        textEl.setAttribute("text-anchor", "middle");
+        textEl.setAttribute("font-size", "22");
+        textEl.setAttribute("font-weight", "bold");
+        textEl.setAttribute("fill", isPos ? "#34d399" : "#f87171");
+        textEl.setAttribute("filter", "drop-shadow(0 2px 8px rgba(0,0,0,0.85))");
+        textEl.classList.add("tx-badge-float");
+
+        txBadgeLayer.appendChild(textEl);
+        setTimeout(function () {
+            txBadgeLayer.innerHTML = "";
+        }, 1900);
     }
 
     // Animate flying nuts (capped at 10)
@@ -545,16 +923,19 @@
             const nut = document.createElementNS("http://www.w3.org/2000/svg", "use");
             nut.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#acorn-symbol");
             nut.setAttribute("href", "#acorn-symbol");
-            nut.setAttribute("x", 440);
-            nut.setAttribute("y", 340);
             nut.classList.add(isIn ? "nut-flying-in" : "nut-flying-out");
-            nut.style.animationDelay = (i * 60) + "ms";
+            nut.style.animationDelay = (i * 70) + "ms";
             flyingNutsLayer.appendChild(nut);
+
+            // Pop sound effect for landing nuts
+            setTimeout(function () {
+                playWoodPopSound();
+            }, (i * 70) + 400);
         }
 
         setTimeout(function () {
             flyingNutsLayer.innerHTML = "";
-        }, 1200);
+        }, 1300);
     }
 
     // Play animation for a single ledger event
@@ -571,24 +952,27 @@
             const isNegative = event.amount < 0;
 
             if (isPurchase) {
-                // Squirrel happy bounce & sparkles
-                squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve");
-                void squirrelActor.offsetWidth; // force reflow
+                // Squirrel happy bounce & sparkles & chimes
+                squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve", "squirrel-joy-spin");
+                void squirrelActor.offsetWidth;
                 squirrelActor.classList.add("squirrel-bounce");
                 triggerSparkles();
+                playSquirrelChirp();
             } else if (isPositive) {
                 // Squirrel carries nuts in
-                squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve");
+                squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve", "squirrel-joy-spin");
                 void squirrelActor.offsetWidth;
                 squirrelActor.classList.add("squirrel-deposit");
+                playChimeSound(440, 0.2);
             } else if (isNegative) {
                 // Squirrel takes nuts out
-                squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve");
+                squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve", "squirrel-joy-spin");
                 void squirrelActor.offsetWidth;
                 squirrelActor.classList.add("squirrel-retrieve");
             }
 
-            // Fly nuts
+            // Fly nuts & show transaction badge
+            showTransactionBadge(event.amount);
             if (isPositive) {
                 animateFlyingNuts(true, event.amount);
             } else if (isNegative) {
@@ -603,10 +987,10 @@
             // Wait for squirrel animation to finish
             setTimeout(function () {
                 if (squirrelActor) {
-                    squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve");
+                    squirrelActor.classList.remove("squirrel-bounce", "squirrel-deposit", "squirrel-retrieve", "squirrel-joy-spin");
                 }
                 resolve();
-            }, 1250);
+            }, 1300);
         });
     }
 
@@ -737,7 +1121,7 @@
         if (replayBtn) {
             replayBtn.addEventListener("click", function () {
                 if (isProcessingQueue) return;
-                const replayEvent = newestEntry || { amount: 5, reason: "PURCHASE" };
+                const replayEvent = newestEntry || { amount: 10, reason: "PURCHASE" };
                 const prev = Math.max(0, targetBalance - replayEvent.amount);
                 animationQueue.push({
                     event: replayEvent,

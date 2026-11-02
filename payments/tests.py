@@ -396,3 +396,111 @@ class WalletAndWithdrawalTests(TestCase):
         )
 
 
+class BkashGatewayTests(TestCase):
+    def setUp(self):
+        self.user = make_student(username="bkash_payer")
+        self.other_user = make_student(username="bkash_intruder")
+        self.client = Client()
+
+    def test_bkash_gateway_registered_and_configured(self):
+        gateway = get_gateway("bkash")
+        self.assertEqual(gateway.name, "bkash")
+
+    def test_bkash_create_payment_returns_checkout_url(self):
+        order = create_order(
+            user=self.user,
+            purpose="Top up 100 nuts",
+            amount_bdt=Decimal("100.00"),
+            reference_type="credits",
+            reference_id="100",
+            gateway="bkash",
+        )
+        gateway = get_gateway("bkash")
+        checkout_url = gateway.create_payment(order, "http://localhost:8000/payments/orders/")
+        self.assertIn(str(order.id), checkout_url)
+        self.assertIn("bkash/checkout", checkout_url)
+
+    def test_bkash_checkout_view_get(self):
+        order = create_order(
+            user=self.user,
+            purpose="Top up 50 nuts",
+            amount_bdt=Decimal("50.00"),
+            reference_type="credits",
+            reference_id="50",
+            gateway="bkash",
+        )
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse("payments:bkash_checkout", args=[order.id]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "bKash")
+        self.assertContains(resp, "50.00")
+        self.assertContains(resp, "01770618575")
+
+    def test_bkash_checkout_view_forbidden_for_other_user(self):
+        order = create_order(
+            user=self.user,
+            purpose="Top up 50 nuts",
+            amount_bdt=Decimal("50.00"),
+            reference_type="credits",
+            reference_id="50",
+            gateway="bkash",
+        )
+        self.client.force_login(self.other_user)
+        resp = self.client.get(reverse("payments:bkash_checkout", args=[order.id]))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_bkash_checkout_view_post_pay_fulfills_credits(self):
+        initial_balance = get_balance(self.user)
+        order = create_order(
+            user=self.user,
+            purpose=PaymentOrder.Purpose.CREDIT_TOPUP,
+            amount_bdt=Decimal("40.00"),
+            reference_type="credits",
+            reference_id="40",
+            gateway="bkash",
+        )
+        self.client.force_login(self.user)
+        resp = self.client.post(
+            reverse("payments:bkash_checkout", args=[order.id]),
+            {
+                "order_id": str(order.id),
+                "action": "pay",
+                "wallet": "01770618575",
+                "otp": "123456",
+                "pin": "12121",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, PaymentOrder.Status.PAID)
+        self.assertTrue(order.gateway_txn_id.startswith("BK"))
+        self.assertEqual(get_balance(self.user), initial_balance + 40)
+
+    def test_bkash_checkout_view_post_cancel_marks_failed(self):
+        initial_balance = get_balance(self.user)
+        order = create_order(
+            user=self.user,
+            purpose=PaymentOrder.Purpose.CREDIT_TOPUP,
+            amount_bdt=Decimal("40.00"),
+            reference_type="credits",
+            reference_id="40",
+            gateway="bkash",
+        )
+        self.client.force_login(self.user)
+        resp = self.client.post(
+            reverse("payments:bkash_checkout", args=[order.id]),
+            {
+                "order_id": str(order.id),
+                "action": "cancel",
+                "reason": "User cancelled on bKash screen",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, PaymentOrder.Status.FAILED)
+        self.assertEqual(get_balance(self.user), initial_balance)
+
+
+
