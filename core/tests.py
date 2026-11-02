@@ -810,3 +810,193 @@ class NavigationAndPolishTests(TestCase):
             self.assertContains(resp_404, "404 Not Found", status_code=404)
             self.assertContains(resp_404, "This nut fell off the tree", status_code=404)
 
+
+
+class ContentImmutabilityPolicyTests(TestCase):
+    """
+    Acceptance tests for user requirements:
+    1. No roles can update/delete (CRUD) published notes/courses/skill swaps.
+    2. No roles can update and resubmit rejected notes/courses/skill swaps.
+    """
+    def setUp(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from decimal import Decimal
+        from campus.models import Department, Batch
+        from courses.models import Course, Lesson
+        from notes.models import Note
+        from swaps.models import SkillPost, SwapSession
+
+        self.client = Client()
+        self.dept = make_department("CSE")
+        self.teacher = make_lecturer(self.dept)
+        self.batch = make_batch(self.dept, 1, class_teacher=self.teacher)
+        self.student = make_student(self.batch)
+        self.superuser = User.objects.create_superuser("superadmin", "admin@gayn.test", "adminpass123")
+
+    def test_published_note_cannot_be_deleted_or_removed(self):
+        from django.core.exceptions import PermissionDenied
+        from notes.models import Note
+
+        note = make_note(owner=self.student, batch=self.batch, title="Published Note", status=Note.Status.APPROVED)
+        
+        # 1. Model delete blocked
+        with self.assertRaises(PermissionDenied):
+            note.delete()
+
+        # 2. View remove blocked for superuser
+        self.client.force_login(self.superuser)
+        resp = self.client.post(reverse("notes:remove", args=[note.pk]), {"reason": "Test remove"})
+        self.assertEqual(resp.status_code, 403)
+
+        # 3. View remove blocked for class teacher
+        self.client.force_login(self.teacher)
+        resp = self.client.post(reverse("notes:remove", args=[note.pk]), {"reason": "Test remove"})
+        self.assertEqual(resp.status_code, 403)
+
+    def test_rejected_note_cannot_be_appealed_or_resubmitted(self):
+        from notes.models import Note
+
+        note = make_note(owner=self.student, batch=self.batch, title="Rejected Note", status=Note.Status.REJECTED)
+
+        # Student cannot appeal/resubmit
+        self.client.force_login(self.student)
+        resp = self.client.post(reverse("notes:appeal", args=[note.pk]), {"message": "Please overturn"})
+        self.assertEqual(resp.status_code, 403)
+
+    def test_published_course_cannot_be_updated_unpublished_or_deleted(self):
+        from decimal import Decimal
+        from django.core.exceptions import PermissionDenied
+        from courses.models import Course, Lesson
+
+        course = Course.objects.create(
+            instructor=self.teacher,
+            title="Published Python Course",
+            description="Deep dive",
+            category=Course.Category.ACADEMIC,
+            price=Decimal("100.00"),
+            status=Course.Status.PUBLISHED,
+        )
+        lesson = Lesson.objects.create(
+            course=course,
+            title="Intro",
+            order=1,
+            duration_seconds=3600,
+        )
+
+        # 1. Course delete blocked
+        with self.assertRaises(PermissionDenied):
+            course.delete()
+
+        # 2. Lesson delete blocked
+        with self.assertRaises(PermissionDenied):
+            lesson.delete()
+
+        # 3. Course edit view blocked
+        self.client.force_login(self.teacher)
+        resp = self.client.post(reverse("courses:course_edit", args=[course.id]), {
+            "title": "Hacked Title",
+            "description": "Changed",
+            "category": Course.Category.ACADEMIC,
+            "price": "100.00",
+        })
+        self.assertRedirects(resp, reverse("courses:course_detail", args=[course.id]))
+        course.refresh_from_db()
+        self.assertEqual(course.title, "Published Python Course")
+
+        # 4. Course unpublish toggle blocked
+        resp_toggle = self.client.post(reverse("courses:course_publish_toggle", args=[course.id]))
+        self.assertRedirects(resp_toggle, reverse("courses:course_detail", args=[course.id]))
+        course.refresh_from_db()
+        self.assertEqual(course.status, Course.Status.PUBLISHED)
+
+        # 5. Adding lesson to published course blocked
+        resp_add = self.client.post(reverse("courses:lesson_create", args=[course.id]), {
+            "title": "New Lesson",
+            "order": 2,
+            "video_url": "https://youtube.com/watch?v=123",
+            "duration_input": 10,
+        })
+        self.assertEqual(resp_add.status_code, 403)
+
+        # 6. Deleting lesson view blocked
+        resp_del_lesson = self.client.post(reverse("courses:lesson_delete", args=[lesson.id]))
+        self.assertEqual(resp_del_lesson.status_code, 403)
+
+    def test_rejected_course_cannot_be_updated_or_resubmitted(self):
+        from decimal import Decimal
+        from courses.models import Course
+
+        course = Course.objects.create(
+            instructor=self.teacher,
+            title="Rejected Course",
+            description="Details",
+            category=Course.Category.ACADEMIC,
+            price=Decimal("100.00"),
+            status=Course.Status.REJECTED,
+        )
+
+        self.client.force_login(self.teacher)
+        # Edit blocked
+        resp_edit = self.client.post(reverse("courses:course_edit", args=[course.id]), {
+            "title": "Try Again Title",
+            "description": "Details",
+            "category": Course.Category.ACADEMIC,
+            "price": "100.00",
+        })
+        self.assertRedirects(resp_edit, reverse("courses:my_courses"))
+
+        # Publish toggle blocked
+        resp_toggle = self.client.post(reverse("courses:course_publish_toggle", args=[course.id]))
+        self.assertRedirects(resp_toggle, reverse("courses:my_courses"))
+
+    def test_published_skill_swap_cannot_be_updated_deactivated_or_deleted(self):
+        from django.core.exceptions import PermissionDenied
+        from swaps.models import SkillPost
+
+        post = SkillPost.objects.create(
+            user=self.student,
+            kind=SkillPost.Kind.OFFER,
+            skill_name="Python Mentoring",
+            description="I can help with Python",
+            is_active=True,
+        )
+
+        # 1. Model delete blocked
+        with self.assertRaises(PermissionDenied):
+            post.delete()
+
+        # 2. View edit blocked
+        self.client.force_login(self.student)
+        resp_edit = self.client.post(reverse("swaps:post_edit", args=[post.id]), {
+            "skill_name": "Hacked Skill",
+            "kind": SkillPost.Kind.OFFER,
+        })
+        self.assertEqual(resp_edit.status_code, 403)
+
+        # 3. View deactivate blocked
+        resp_deact = self.client.post(reverse("swaps:post_deactivate", args=[post.id]))
+        self.assertEqual(resp_deact.status_code, 403)
+
+    def test_rejected_swap_session_cannot_be_resubmitted(self):
+        from swaps.models import SkillPost, SwapSession
+
+        other_student = make_student(self.batch, username="peer_student")
+        post = SkillPost.objects.create(
+            user=self.student,
+            kind=SkillPost.Kind.OFFER,
+            skill_name="Web Design",
+            is_active=True,
+        )
+        # Create previously declined session
+        SwapSession.objects.create(
+            teacher=self.student,
+            learner=other_student,
+            post=post,
+            skill_name=post.skill_name,
+            status=SwapSession.Status.DECLINED,
+        )
+
+        # Attempt to request session again
+        self.client.force_login(other_student)
+        resp = self.client.post(reverse("swaps:session_request", args=[post.id]))
+        self.assertRedirects(resp, reverse("swaps:list"))

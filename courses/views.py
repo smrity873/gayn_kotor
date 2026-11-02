@@ -207,6 +207,13 @@ def course_edit(request, pk):
     if course.instructor != request.user and not request.user.is_superuser:
         raise PermissionDenied(_("You cannot edit this course."))
 
+    if course.status == Course.Status.PUBLISHED:
+        messages.error(request, _("Published courses cannot be updated or modified by any role."))
+        return redirect("courses:course_detail", pk=course.pk)
+    if course.status == Course.Status.REJECTED:
+        messages.error(request, _("Rejected courses cannot be updated or resubmitted."))
+        return redirect("courses:my_courses")
+
     if request.method == "POST":
         form = CourseForm(request.POST, request.FILES, instance=course)
         if form.is_valid():
@@ -242,6 +249,13 @@ def course_publish_toggle(request, pk):
     if course.instructor != request.user and not request.user.is_superuser:
         raise PermissionDenied(_("You cannot publish this course."))
 
+    if course.status == Course.Status.PUBLISHED:
+        messages.error(request, _("Published courses cannot be updated, unpublished, or modified."))
+        return redirect("courses:course_detail", pk=course.pk)
+    if course.status == Course.Status.REJECTED:
+        messages.error(request, _("Rejected courses cannot be updated or resubmitted."))
+        return redirect("courses:my_courses")
+
     if course.status == Course.Status.DRAFT:
         if course.lessons.count() == 0:
             messages.error(request, _("A course must have at least one lesson before publishing."))
@@ -273,6 +287,11 @@ def lesson_create(request, course_pk):
     if course.instructor != request.user and not request.user.is_superuser:
         raise PermissionDenied(_("You cannot add lessons to this course."))
 
+    if course.status == Course.Status.PUBLISHED:
+        raise PermissionDenied(_("Lessons cannot be added to a published course."))
+    if course.status == Course.Status.REJECTED:
+        raise PermissionDenied(_("Lessons cannot be added to a rejected course."))
+
     lesson = Lesson(course=course)
     if request.method == "POST":
         form = LessonForm(request.POST, request.FILES, instance=lesson)
@@ -299,6 +318,11 @@ def lesson_edit(request, pk):
     course = lesson.course
     if course.instructor != request.user and not request.user.is_superuser:
         raise PermissionDenied(_("You cannot edit this lesson."))
+
+    if course.status == Course.Status.PUBLISHED:
+        raise PermissionDenied(_("Lessons belonging to a published course cannot be updated."))
+    if course.status == Course.Status.REJECTED:
+        raise PermissionDenied(_("Lessons belonging to a rejected course cannot be updated."))
 
     if request.method == "POST":
         form = LessonForm(request.POST, request.FILES, instance=lesson)
@@ -332,6 +356,11 @@ def lesson_delete(request, pk):
     course = lesson.course
     if course.instructor != request.user and not request.user.is_superuser:
         raise PermissionDenied(_("You cannot delete this lesson."))
+
+    if course.status == Course.Status.PUBLISHED:
+        raise PermissionDenied(_("Lessons belonging to a published course cannot be deleted."))
+    if course.status == Course.Status.REJECTED:
+        raise PermissionDenied(_("Lessons belonging to a rejected course cannot be deleted."))
 
     title = lesson.title
     lesson.delete()

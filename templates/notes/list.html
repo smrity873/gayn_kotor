@@ -33,20 +33,20 @@
     </div>
 
     <!-- Search and filters -->
-    <form method="get" class="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
+    <form id="notes-filter-form" method="get" class="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
         <input type="hidden" name="tab" value="{{ tab }}">
         <div class="relative">
             <svg class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-green-900/40 dark:text-green-100/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5"/></svg>
             <input type="search" name="q" value="{{ q }}" placeholder="Search by name or course code (e.g. CSE101)..."
                    class="w-full rounded-full border border-green-200 bg-white py-2.5 pl-12 pr-5 text-green-950 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/30 dark:border-green-800 dark:bg-card-dark dark:text-green-50">
         </div>
-        <select name="department" class="rounded-full border border-green-200 bg-white px-5 py-2.5 text-green-950 outline-none focus:border-green-500 dark:border-green-800 dark:bg-card-dark dark:text-green-50">
+        <select name="department" onchange="this.form.submit()" class="rounded-full border border-green-200 bg-white px-5 py-2.5 text-green-950 outline-none focus:border-green-500 dark:border-green-800 dark:bg-card-dark dark:text-green-50">
             <option value="">All departments</option>
             {% for d in departments %}
             <option value="{{ d.id }}" {% if department == d.id|stringformat:"s" %}selected{% endif %}>{{ d.code }}</option>
             {% endfor %}
         </select>
-        <select name="semester" class="rounded-full border border-green-200 bg-white px-5 py-2.5 text-green-950 outline-none focus:border-green-500 dark:border-green-800 dark:bg-card-dark dark:text-green-50">
+        <select name="semester" onchange="this.form.submit()" class="rounded-full border border-green-200 bg-white px-5 py-2.5 text-green-950 outline-none focus:border-green-500 dark:border-green-800 dark:bg-card-dark dark:text-green-50">
             <option value="">All semesters</option>
             {% for s in semesters %}
             <option value="{{ s }}" {% if semester == s|stringformat:"s" %}selected{% endif %}>Semester {{ s }}</option>
@@ -62,8 +62,15 @@
         {% endif %}
     </div>
 
+    <!-- Skeletons Placeholder -->
+    <div id="notes-skeletons" class="hidden mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {% for _ in "123456" %}
+            {% include "partials/skeletons/note_card.html" %}
+        {% endfor %}
+    </div>
+
     <!-- Note cards -->
-    <div class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div id="notes-grid" class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
        {% for note in page %}
         <a href="{% url 'notes:detail' note.pk %}" class="group flex flex-col overflow-hidden rounded-2xl border border-green-100 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-green-900/60 dark:bg-card-dark">
             
@@ -101,7 +108,7 @@
                 {% if tab == 'mine' and note.status == 'rejected' %}
                 <div class="mt-3 flex items-center justify-between gap-2 rounded-xl bg-red-50 p-2.5 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-300">
                     <span class="truncate">Reason: {{ note.rejection_reason|default:"No reason provided" }}</span>
-                    <a href="{% url 'notes:appeal' note.pk %}" class="shrink-0 rounded-full bg-red-600 px-3 py-1 font-bold text-white shadow-sm transition hover:bg-red-700">Appeal</a>
+                    <span class="shrink-0 rounded-full bg-red-100 dark:bg-red-950/40 px-3 py-1 text-[11px] font-bold text-red-700 dark:text-red-300">Rejected (Final)</span>
                 </div>
                 {% endif %}
                 {% if tab == 'mine' and note.status == 'pending' %}
@@ -151,4 +158,18 @@
     </div>
     {% endif %}
 </section>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("notes-filter-form");
+        const grid = document.getElementById("notes-grid");
+        const skeletons = document.getElementById("notes-skeletons");
+        if (form && grid && skeletons) {
+            form.addEventListener("submit", function () {
+                grid.classList.add("hidden");
+                skeletons.classList.remove("hidden");
+            });
+        }
+    });
+</script>
 {% endblock %}

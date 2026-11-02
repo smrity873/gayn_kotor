@@ -207,9 +207,22 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# AWS / Neon S3 Object Storage Configuration
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "uploads")
+AWS_S3_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL_S3") or os.getenv("AWS_S3_ENDPOINT_URL", "")
+AWS_S3_REGION_NAME = os.getenv("AWS_REGION") or os.getenv("AWS_S3_REGION_NAME", "ap-southeast-1")
+AWS_S3_SIGNATURE_VERSION = "s3v4"
+AWS_S3_FILE_OVERWRITE = False
+
+# Enable S3 when credentials are set (disabled during unit test execution for speed and isolation)
+is_running_tests = "test" in sys.argv
+USE_S3 = bool(AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_S3_ENDPOINT_URL) and not is_running_tests
+
 STORAGES = {
     'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'BACKEND': 'core.storage.PublicMediaS3Storage' if USE_S3 else 'django.core.files.storage.FileSystemStorage',
     },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
@@ -220,14 +233,36 @@ STORAGES = {
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-_email_backend = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+default_email_backend = "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend"
+_email_backend = os.getenv("EMAIL_BACKEND", default_email_backend)
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@localhost")
+
+_mailer_options = {}
+if "smtp" in _email_backend.lower():
+    _mailer_options = {
+        'host': os.getenv("EMAIL_HOST", "localhost"),
+        'port': int(os.getenv("EMAIL_PORT", "587")),
+        'username': os.getenv("EMAIL_HOST_USER", ""),
+        'password': os.getenv("EMAIL_HOST_PASSWORD", ""),
+        'use_tls': os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes"),
+    }
 
 MAILERS = {
     'default': {
         'BACKEND': _email_backend,
+        'OPTIONS': _mailer_options,
     },
 }
+
+# Production & Security Hardening (PRD 8.1)
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("SECURE_HSTS_INCLUDE_SUBDOMAINS", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+SECURE_HSTS_PRELOAD = os.getenv("SECURE_HSTS_PRELOAD", "False" if DEBUG else "True").lower() in ("true", "1", "yes")
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -256,8 +291,16 @@ ALLOWED_EMAIL_DOMAINS = [d.strip().lower() for d in os.getenv("ALLOWED_EMAIL_DOM
 CREDIT_PRICE_BDT = Decimal(os.getenv("CREDIT_PRICE_BDT", "1"))
 CREDIT_TOPUP_MIN = int(os.getenv("CREDIT_TOPUP_MIN", "10"))
 CREDIT_TOPUP_MAX = int(os.getenv("CREDIT_TOPUP_MAX", "5000"))
-PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "sandbox")
+PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "bkash")
 SANDBOX_ALLOWED = os.getenv("SANDBOX_ALLOWED", "True").lower() in ("true", "1", "yes")
+
+# bKash Payment Gateway (Tokenized Sandbox / Production)
+BKASH_APP_KEY = os.getenv("BKASH_APP_KEY", "")
+BKASH_APP_SECRET = os.getenv("BKASH_APP_SECRET", "")
+BKASH_USERNAME = os.getenv("BKASH_USERNAME", "")
+BKASH_PASSWORD = os.getenv("BKASH_PASSWORD", "")
+BKASH_BASE_URL = os.getenv("BKASH_BASE_URL", "https://tokenized.sandbox.bka.sh/v1.2.0-beta")
+BKASH_SANDBOX_MODE = os.getenv("BKASH_SANDBOX_MODE", "True").lower() in ("true", "1", "yes")
 
 # Skill Swap (Phase 5)
 SWAP_DEPOSIT = int(os.getenv("SWAP_DEPOSIT", "10"))

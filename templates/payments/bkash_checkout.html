@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}bKash Payment - {{ order.amount_bdt }} BDT{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-lg px-4 py-8 sm:px-6">
+    <!-- Sandbox Notice Banner -->
+    <div class="mb-4 rounded-2xl border border-pink-200 bg-pink-50 p-4 text-xs text-pink-950 dark:border-pink-900/60 dark:bg-pink-950/30 dark:text-pink-100 shadow-sm">
+        <div class="flex items-center gap-2 font-bold text-pink-700 dark:text-pink-300">
+            <span class="inline-block h-2 w-2 rounded-full bg-pink-500 animate-pulse"></span>
+            bKash Tokenized Sandbox Mode
+        </div>
+        <p class="mt-1 text-pink-800/90 dark:text-pink-200/90">
+            Test Wallet: <code class="font-mono font-bold bg-pink-100 dark:bg-pink-900/50 px-1 py-0.5 rounded">{{ test_wallet }}</code> · 
+            OTP: <code class="font-mono font-bold bg-pink-100 dark:bg-pink-900/50 px-1 py-0.5 rounded">{{ test_otp }}</code> · 
+            PIN: <code class="font-mono font-bold bg-pink-100 dark:bg-pink-900/50 px-1 py-0.5 rounded">{{ test_pin }}</code>
+        </p>
+    </div>
+
+    <!-- Official bKash Branded Payment Container -->
+    <div class="overflow-hidden rounded-3xl border border-pink-300/40 bg-white shadow-2xl dark:border-pink-900/40 dark:bg-stone-900">
+        <!-- bKash Pink Header with Official Logo -->
+        <div class="bg-[#E2136E] px-6 py-6 text-white text-center relative">
+            <div class="flex items-center justify-center">
+                <div class="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-2 shadow-lg">
+                    <img src="{% static 'images/bkash-logo.jpg' %}" alt="bKash" class="h-10 w-auto object-contain">
+                </div>
+            </div>
+
+            <!-- Merchant & Invoice Details -->
+            <div class="mt-5 rounded-2xl bg-[#C10E5C] px-4 py-3 text-sm">
+                <div class="flex justify-between items-center text-xs text-pink-100">
+                    <span>Merchant</span>
+                    <span class="font-bold text-white">Gayn Kotor (জ্ঞান কোটর)</span>
+                </div>
+                <div class="flex justify-between items-center text-xs text-pink-100 mt-1">
+                    <span>Invoice</span>
+                    <span class="font-mono text-white">INV-{{ order.id.hex|slice:":8"|upper }}</span>
+                </div>
+                <div class="flex justify-between items-center mt-2 border-t border-pink-400/40 pt-2 font-bold">
+                    <span>Amount</span>
+                    <span class="text-xl text-white">৳ {{ order.amount_bdt }} BDT</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Checkout Interactive Form -->
+        <div class="p-6">
+            <form id="bkash-form" method="post" action="{% url 'payments:bkash_checkout' order.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="order_id" value="{{ order.id }}">
+                <input type="hidden" id="action-input" name="action" value="pay">
+
+                <!-- Step 1: Wallet Number -->
+                <div id="step-1" class="step-container space-y-4">
+                    <div>
+                        <label for="wallet-number" class="block text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300">
+                            Your bKash Account Number
+                        </label>
+                        <div class="mt-2 relative">
+                            <input type="text" id="wallet-number" name="wallet" value="{{ test_wallet }}" required maxlength="11" class="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-base font-mono font-bold tracking-widest text-stone-900 focus:border-[#E2136E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E2136E]/20 dark:border-stone-700 dark:bg-stone-800 dark:text-white" placeholder="01XXXXXXXXX">
+                        </div>
+                        <p class="mt-1.5 text-xs text-stone-500">By clicking Proceed, you agree to terms and conditions.</p>
+                    </div>
+
+                    <div class="pt-2 flex flex-col gap-2.5">
+                        <button type="button" id="btn-to-step-2" class="w-full rounded-xl bg-[#E2136E] py-3.5 text-center text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-pink-600/30 transition hover:bg-[#C10E5C] hover:scale-[1.01]">
+                            Proceed &rarr;
+                        </button>
+                        <button type="submit" onclick="document.getElementById('action-input').value='cancel';" class="w-full rounded-xl border border-stone-300 bg-transparent py-2.5 text-center text-xs font-semibold text-stone-600 transition hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800">
+                            Cancel Payment
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Verification Code (OTP) -->
+                <div id="step-2" class="step-container hidden space-y-4">
+                    <div>
+                        <label for="otp-code" class="block text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300">
+                            bKash Verification Code (OTP)
+                        </label>
+                        <p class="text-xs text-stone-500 mt-0.5">Enter the 6-digit verification code sent to your mobile</p>
+                        <div class="mt-2 relative">
+                            <input type="text" id="otp-code" name="otp" value="{{ test_otp }}" maxlength="6" class="w-full text-center rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-lg font-mono font-bold tracking-[0.5em] text-stone-900 focus:border-[#E2136E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E2136E]/20 dark:border-stone-700 dark:bg-stone-800 dark:text-white" placeholder="123456">
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex flex-col gap-2.5">
+                        <button type="button" id="btn-to-step-3" class="w-full rounded-xl bg-[#E2136E] py-3.5 text-center text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-pink-600/30 transition hover:bg-[#C10E5C] hover:scale-[1.01]">
+                            Confirm OTP &rarr;
+                        </button>
+                        <button type="button" id="btn-back-to-1" class="w-full text-center text-xs font-semibold text-stone-500 hover:text-stone-700 dark:hover:text-stone-300">
+                            &larr; Change Account Number
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: bKash PIN -->
+                <div id="step-3" class="step-container hidden space-y-4">
+                    <div>
+                        <label for="pin-code" class="block text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300">
+                            Enter Your 5-digit bKash PIN
+                        </label>
+                        <p class="text-xs text-stone-500 mt-0.5">Sandbox Test PIN is <code>12121</code></p>
+                        <div class="mt-2 relative">
+                            <input type="password" id="pin-code" name="pin" value="{{ test_pin }}" maxlength="5" class="w-full text-center rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-lg font-mono font-bold tracking-[0.5em] text-stone-900 focus:border-[#E2136E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E2136E]/20 dark:border-stone-700 dark:bg-stone-800 dark:text-white" placeholder="•••••">
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex flex-col gap-2.5">
+                        <button type="submit" id="btn-submit-pay" class="w-full rounded-xl bg-[#E2136E] py-3.5 text-center text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-pink-600/30 transition hover:bg-[#C10E5C] hover:scale-[1.01]">
+                            Confirm Payment (৳ {{ order.amount_bdt }})
+                        </button>
+                        <button type="button" id="btn-back-to-2" class="w-full text-center text-xs font-semibold text-stone-500 hover:text-stone-700 dark:hover:text-stone-300">
+                            &larr; Back to OTP
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Quick Sandbox Instant Complete -->
+            <div class="mt-6 border-t border-stone-200 pt-4 text-center dark:border-stone-800">
+                <form method="post" action="{% url 'payments:bkash_checkout' order.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <input type="hidden" name="action" value="pay">
+                    <button type="submit" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#E2136E] hover:underline">
+                        <span>⚡ 1-Click Instant Sandbox Complete</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Footer Help -->
+        <div class="bg-stone-50 px-6 py-3 text-center text-xs text-stone-500 dark:bg-stone-950 dark:text-stone-400 border-t border-stone-200 dark:border-stone-800">
+            Dial 16247 or visit <a href="https://developer.bka.sh/docs" target="_blank" rel="noopener" class="text-[#E2136E] underline">bKash Developer Docs</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const step1 = document.getElementById("step-1");
+        const step2 = document.getElementById("step-2");
+        const step3 = document.getElementById("step-3");
+
+        const btnTo2 = document.getElementById("btn-to-step-2");
+        const btnTo3 = document.getElementById("btn-to-step-3");
+        const btnBackTo1 = document.getElementById("btn-back-to-1");
+        const btnBackTo2 = document.getElementById("btn-back-to-2");
+
+        if (btnTo2) {
+            btnTo2.addEventListener("click", function () {
+                step1.classList.add("hidden");
+                step2.classList.remove("hidden");
+                document.getElementById("otp-code").focus();
+            });
+        }
+
+        if (btnTo3) {
+            btnTo3.addEventListener("click", function () {
+                step2.classList.add("hidden");
+                step3.classList.remove("hidden");
+                document.getElementById("pin-code").focus();
+            });
+        }
+
+        if (btnBackTo1) {
+            btnBackTo1.addEventListener("click", function () {
+                step2.classList.add("hidden");
+                step1.classList.remove("hidden");
+            });
+        }
+
+        if (btnBackTo2) {
+            btnBackTo2.addEventListener("click", function () {
+                step3.classList.add("hidden");
+                step2.classList.remove("hidden");
+            });
+        }
+    });
+</script>
+{% endblock %}
+

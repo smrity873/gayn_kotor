@@ -2,6 +2,7 @@ import os
 import uuid
 from decimal import Decimal
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -33,6 +34,7 @@ class Course(models.Model):
     class Status(models.TextChoices):
         DRAFT = "draft", _("Draft")
         PUBLISHED = "published", _("Published")
+        REJECTED = "rejected", _("Rejected")
 
     instructor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -70,6 +72,11 @@ class Course(models.Model):
 
     def __str__(self):
         return self.title
+
+    def delete(self, *args, **kwargs):
+        if self.status == self.Status.PUBLISHED:
+            raise PermissionDenied("Published courses cannot be deleted.")
+        return super().delete(*args, **kwargs)
 
     @property
     def is_published(self):
@@ -125,6 +132,11 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f"{self.course.title} - #{self.order} {self.title}"
+
+    def delete(self, *args, **kwargs):
+        if self.course.status == Course.Status.PUBLISHED:
+            raise PermissionDenied("Lessons belonging to a published course cannot be deleted.")
+        return super().delete(*args, **kwargs)
 
     @property
     def duration_minutes(self):

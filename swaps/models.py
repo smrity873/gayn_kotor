@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -37,6 +38,11 @@ class SkillPost(models.Model):
 
     def __str__(self):
         return f"{self.user.username}: {self.get_kind_display()} - {self.skill_name}"
+
+    def delete(self, *args, **kwargs):
+        if self.is_active:
+            raise PermissionDenied("Published skill swap posts cannot be deleted.")
+        return super().delete(*args, **kwargs)
 
 
 class SwapSession(models.Model):

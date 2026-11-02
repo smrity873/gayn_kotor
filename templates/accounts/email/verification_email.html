@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify your email - {{ site_name }}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f8; color: #1f2937;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f6f8; padding: 36px 16px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" style="max-width: 560px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #166534 0%, #15803d 100%); padding: 32px 32px 28px; text-align: center;">
+                            <span style="font-size: 38px; display: inline-block;">🌰</span>
+                            <h1 style="margin: 10px 0 0; color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">
+                                {{ site_name }}
+                            </h1>
+                            <p style="margin: 4px 0 0; color: #bbf7d0; font-size: 13px; font-weight: 500;">
+                                University Peer Learning & Knowledge Exchange
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 32px;">
+                            <h2 style="margin: 0 0 16px; color: #111827; font-size: 18px; font-weight: 600;">
+                                Verify your email address
+                            </h2>
+                            <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #4b5563;">
+                                Hi <strong>{{ user_display_name }}</strong>,
+                            </p>
+                            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #4b5563;">
+                                Welcome to <strong>{{ site_name }}</strong>! Please click the button below to verify your email address and unlock your <strong>30 welcome nuts (🌰)</strong> signup bonus:
+                            </p>
+
+                            <!-- CTA Button -->
+                            <div style="text-align: center; margin: 32px 0;">
+                                <a href="{{ verify_url }}" style="display: inline-block; background-color: #15803d; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 9999px; box-shadow: 0 2px 6px rgba(21, 128, 61, 0.35);">
+                                    Verify Email Address &rarr;
+                                </a>
+                            </div>
+
+                            <p style="margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: #6b7280;">
+                                Or copy and paste this link into your browser:
+                            </p>
+                            <p style="margin: 0 0 24px; font-size: 12px; word-break: break-all; color: #15803d; background-color: #f0fdf4; padding: 10px 14px; border-radius: 8px; border: 1px solid #dcfce7;">
+                                <a href="{{ verify_url }}" style="color: #15803d; text-decoration: underline;">{{ verify_url }}</a>
+                            </p>
+
+                            <p style="margin: 0 0 8px; font-size: 12px; color: #9ca3af;">
+                                ⏱️ This verification link will expire in 3 days.
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                If you did not create an account on {{ site_name }}, you can safely ignore this email.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 20px 32px; text-align: center; border-top: 1px solid #f3f4f6;">
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                &copy; {{ year }} {{ site_name }}. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+

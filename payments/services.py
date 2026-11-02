@@ -7,12 +7,14 @@ from django.utils.translation import gettext_lazy as _
 
 from notifications.services import notify
 from .gateways.base import PaymentGateway, PaymentResult
+from .gateways.bkash import BkashGateway
 from .gateways.sandbox import SandboxGateway
 from .models import PaymentOrder, Wallet, WalletEntry, WithdrawalRequest
 from .registry import get_fulfiller
 
 _GATEWAYS = {
     "sandbox": SandboxGateway,
+    "bkash": BkashGateway,
 }
 
 

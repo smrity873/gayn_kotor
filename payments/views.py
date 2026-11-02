@@ -98,6 +98,43 @@ def sandbox_view(request, order_id):
 
 
 @login_required
+def bkash_checkout_view(request, order_id):
+    """
+    bKash Tokenized Checkout interactive payment view (Sandbox mode).
+    Enforces that the user is the owner of the order.
+    Presents an authentic bKash branded checkout UI (signature #E2136E) with
+    test wallet credentials, OTP verification, and PIN confirmation.
+    """
+    order = get_object_or_404(PaymentOrder, id=order_id)
+    if order.user_id != request.user.id and not request.user.is_superuser:
+        raise PermissionDenied("You cannot view or complete another user's order.")
+
+    if order.status in (PaymentOrder.Status.PAID, PaymentOrder.Status.FAILED, PaymentOrder.Status.CANCELLED):
+        return redirect("payments:order_detail", order_id=order.id)
+
+    if request.method == "POST":
+        gateway = get_gateway("bkash")
+        result = gateway.parse_callback(request)
+        complete_order(order, result)
+        if result.success:
+            messages.success(
+                request,
+                f"bKash payment of {order.amount_bdt} BDT successful! TrxID: {result.gateway_txn_id}. Order fulfilled.",
+            )
+        else:
+            messages.error(request, result.error_message or "bKash payment failed or was cancelled.")
+        return redirect("payments:order_detail", order_id=order.id)
+
+    context = {
+        "order": order,
+        "test_wallet": "01770618575",
+        "test_otp": "123456",
+        "test_pin": "12121",
+    }
+    return render(request, "payments/bkash_checkout.html", context)
+
+
+@login_required
 def order_list(request):
     """Order history view for the authenticated user."""
     orders_qs = request.user.payment_orders.all().order_by("-created_at")

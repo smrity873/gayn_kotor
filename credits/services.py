@@ -9,13 +9,29 @@ from notifications.services import notify
 from .models import CreditLedger
 
 
-def get_balance(user):
-    total = user.ledger.aggregate(total=Sum("amount"))["total"]
-    return total or 0
+def get_balance(user, request=None):
+    """
+    Returns user credit balance.
+    Caches per-request to prevent redundant SUM aggregates during template rendering (PRD 8.2).
+    """
+    if request and hasattr(request, "_cached_credit_balance"):
+        return request._cached_credit_balance
+
+    total = user.ledger.aggregate(total=Sum("amount"))["total"] or 0
+    if request:
+        setattr(request, "_cached_credit_balance", total)
+    return total
 
 
 @transaction.atomic
-def add_entry(user, amount, reason, description="", allow_negative=False, notify=True, reverses=None):
+def add_entry(user, amount, reason, description="", allow_negative=False, notify=True, reverses=None, request=None):
+    # Invalidate per-request cache on write (PRD 8.2)
+    if request and hasattr(request, "_cached_credit_balance"):
+        try:
+            delattr(request, "_cached_credit_balance")
+        except AttributeError:
+            pass
+
     if amount < 0:
         get_user_model().objects.select_for_update().get(pk=user.pk)
         if not allow_negative and get_balance(user) + amount < 0:

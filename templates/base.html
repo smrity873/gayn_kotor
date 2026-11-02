@@ -40,9 +40,59 @@
             },
         };
     </script>
+
+    <style>
+        /* Global Loading Skeleton Shimmer Animation */
+        @keyframes skeletonShimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                rgba(229, 231, 235, 0.7) 25%,
+                rgba(243, 244, 246, 0.95) 37%,
+                rgba(229, 231, 235, 0.7) 63%
+            );
+            background-size: 200% 100%;
+            animation: skeletonShimmer 1.5s ease-in-out infinite;
+        }
+
+        .dark .skeleton {
+            background: linear-gradient(
+                90deg,
+                rgba(31, 41, 55, 0.6) 25%,
+                rgba(55, 65, 81, 0.75) 37%,
+                rgba(31, 41, 55, 0.6) 63%
+            );
+            background-size: 200% 100%;
+            animation: skeletonShimmer 1.5s ease-in-out infinite;
+        }
+
+        /* Top Progress Bar for page transitions */
+        #top-loading-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            width: 0%;
+            background: linear-gradient(90deg, #10B981, #F59E0B);
+            z-index: 9999;
+            transition: width 0.25s ease, opacity 0.3s ease;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+            pointer-events: none;
+        }
+    </style>
 </head>
 
 <body class="min-h-screen bg-canvas dark:bg-canvas-dark text-green-950 dark:text-green-50 font-sans antialiased">
+    <!-- Top Progress Bar -->
+    <div id="top-loading-bar"></div>
 
     {% include "partials/navbar.html" %}
 
@@ -81,6 +131,33 @@
             var isDark = document.documentElement.classList.toggle("dark");
             localStorage.setItem("theme", isDark ? "dark" : "light");
         }
+
+        // Top Loading Progress Bar Handler for Page Navigation
+        (function () {
+            const bar = document.getElementById("top-loading-bar");
+            if (!bar) return;
+
+            window.addEventListener("beforeunload", function () {
+                bar.style.opacity = "1";
+                bar.style.width = "75%";
+            });
+
+            document.addEventListener("click", function (e) {
+                const link = e.target.closest("a");
+                if (link && link.href && !link.target && !link.hasAttribute("download") && link.href.startsWith(window.location.origin) && !link.href.includes("#")) {
+                    bar.style.opacity = "1";
+                    bar.style.width = "40%";
+                    setTimeout(function () {
+                        if (bar.style.width === "40%") bar.style.width = "70%";
+                    }, 250);
+                }
+            });
+
+            document.addEventListener("submit", function (e) {
+                bar.style.opacity = "1";
+                bar.style.width = "60%";
+            });
+        })();
     </script>
 </body>
 </html>

@@ -386,6 +386,9 @@ def remove_note(note, by, reason, reverse_reward=False):
 def can_remove_note(user, note):
     if not user.is_authenticated:
         return False
+    # Published notes cannot be removed or deleted by any role
+    if note.status in (Note.Status.APPROVED, Note.Status.UNVERIFIED):
+        return False
     if user.is_superuser:
         return True
     if note.batch and note.batch.class_teacher_id == user.id:
