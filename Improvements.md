@@ -60,3 +60,4 @@ While the web frontend is fully responsive across 360px+ viewports, a native mob
 - **Cross-Platform App**: Build a mobile client using Flutter or React Native communicating with Django REST Framework / Ninja APIs.
 - **Offline PDF Viewer & Video Caching**: Support encrypted offline storage of unlocked lecture notes and purchased video lessons.
 - **Calendar Synchronization**: Sync scheduled skill swap tutoring sessions directly into Google Calendar or Apple Calendar using device calendar APIs.
+

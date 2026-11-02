@@ -294,3 +294,4 @@ pg_restore -h $DB_HOST -U $DB_USER -d $DB_NAME -v /backups/gayn_kotor_backup.dum
 ## License
 
 This project is developed for institutional academic use under the MIT License.
+

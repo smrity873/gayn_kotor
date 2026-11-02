@@ -302,3 +302,4 @@ erDiagram
 2. **Double-Spend Prevention in Escrow**: `SWAP_SESSION` holds 10 nuts each from teacher and learner upon scheduling. The deposits are atomically released upon confirmed mutual completion, or forfeited upon verified no-show.
 3. **Double-Spend Prevention in Cash Withdrawals**: `WITHDRAWAL_REQUEST` creation locks the user's `WALLET` row, verifies `SUM(amount) >= withdrawal_amount`, and immediately inserts a negative `WITHDRAWAL_HOLD` entry to guarantee instructor solvency.
 4. **Content Protection & Isolation**: Note PDF binaries and course video MP4 files are stored in `PRIVATE_MEDIA_ROOT` outside web-accessible document roots, served only through authenticated Django views with permission checks and HTTP Range streaming.
+
