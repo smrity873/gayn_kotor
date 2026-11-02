@@ -9,12 +9,32 @@ class SkillPostAdmin(admin.ModelAdmin):
     list_filter = ("kind", "is_active", "created_at")
     search_fields = ("user__username", "user__email", "skill_name", "normalized_skill")
 
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.is_active:
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def has_change_permission(self, request, obj=None):
+        if obj is not None:
+            return False
+        return super().has_change_permission(request, obj)
+
 
 @admin.register(SwapSession)
 class SwapSessionAdmin(admin.ModelAdmin):
     list_display = ("id", "skill_name", "teacher", "learner", "status", "proposed_time", "deposit_held", "created_at")
     list_filter = ("status", "deposit_held", "created_at")
     search_fields = ("teacher__username", "learner__username", "skill_name")
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.status in (SwapSession.Status.COMPLETED, SwapSession.Status.ACCEPTED, SwapSession.Status.SCHEDULED):
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def has_change_permission(self, request, obj=None):
+        if obj is not None and obj.status in (SwapSession.Status.DECLINED, SwapSession.Status.COMPLETED):
+            return False
+        return super().has_change_permission(request, obj)
 
 
 @admin.register(SessionRating)

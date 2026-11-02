@@ -166,29 +166,25 @@ class NoteAppealTests(TestCase):
         self.client = Client()
 
     def test_appeal_permissions_and_single_open_constraint(self):
+        from django.core.exceptions import PermissionDenied
         # Non-owner cannot appeal
         self.client.force_login(self.other_user)
         response = self.client.post(reverse("notes:appeal", args=[self.note.pk]), {"message": "Please review"})
         self.assertEqual(response.status_code, 403)
 
-        # Owner appeals successfully
+        # Owner resubmission/appeal of rejected notes is strictly blocked for all roles
         self.client.force_login(self.owner)
         response = self.client.post(
             reverse("notes:appeal", args=[self.note.pk]),
             {"message": "I rescanned the blurry pages, please look again."}
         )
-        self.assertEqual(response.status_code, 302)
-        appeal = NoteAppeal.objects.get(note=self.note)
-        self.assertEqual(appeal.status, NoteAppeal.Status.OPEN)
-        self.assertEqual(appeal.user, self.owner)
-        self.assertTrue(Notification.objects.filter(user=self.teacher).exists())
+        self.assertEqual(response.status_code, 403)
 
-        # Second open appeal blocked
-        response2 = self.client.post(
-            reverse("notes:appeal", args=[self.note.pk]),
-            {"message": "Another appeal message"}
-        )
-        self.assertEqual(NoteAppeal.objects.filter(note=self.note).count(), 1)
+        # Published notes cannot be deleted by any role
+        self.note.status = Note.Status.APPROVED
+        self.note.save()
+        with self.assertRaises(PermissionDenied):
+            self.note.delete()
 
     def test_appeal_decision_uphold_and_grant(self):
         appeal = NoteAppeal.objects.create(

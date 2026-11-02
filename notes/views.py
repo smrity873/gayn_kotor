@@ -371,8 +371,7 @@ def note_rate(request, pk):
 @verified_required
 def note_appeal(request, pk):
     note = get_object_or_404(Note, pk=pk)
-    if note.owner_id != request.user.id or note.status != Note.Status.REJECTED:
-        raise PermissionDenied("You can only appeal rejected notes that belong to you.")
+    raise PermissionDenied("Rejected notes cannot be updated or appealed/resubmitted.")
 
     if NoteAppeal.objects.filter(note=note, status=NoteAppeal.Status.OPEN).exists():
         messages.info(request, "An appeal is already pending review for this note.")
@@ -579,6 +578,8 @@ def flagged_action(request, pk):
 @require_POST
 def remove_note_view(request, pk):
     note = get_object_or_404(Note, pk=pk)
+    if note.status in (Note.Status.APPROVED, Note.Status.UNVERIFIED):
+        raise PermissionDenied("Published notes cannot be deleted or removed by any role.")
     if not can_remove_note(request.user, note):
         raise PermissionDenied
 

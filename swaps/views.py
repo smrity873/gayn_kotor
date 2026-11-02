@@ -156,6 +156,11 @@ def post_edit(request, pk):
     if post.user_id != request.user.id and not request.user.is_superuser:
         raise PermissionDenied(_("You can only edit your own posts."))
 
+    if post.is_active:
+        raise PermissionDenied(_("Published skill swap posts cannot be updated or modified by any role."))
+    else:
+        raise PermissionDenied(_("Inactive skill swap posts cannot be updated or resubmitted."))
+
     if request.method == "POST":
         form = SkillPostForm(request.POST, instance=post)
         if form.is_valid():
@@ -175,6 +180,9 @@ def post_deactivate(request, pk):
     if post.user_id != request.user.id and not request.user.is_superuser:
         raise PermissionDenied(_("You can only deactivate your own posts."))
 
+    if post.is_active:
+        raise PermissionDenied(_("Published skill swap posts cannot be updated or deleted by any role."))
+
     if request.method == "POST":
         post.is_active = False
         post.save(update_fields=["is_active"])
@@ -187,6 +195,14 @@ def post_deactivate(request, pk):
 def session_request(request, post_id):
     """Requests a skill swap session with the post owner."""
     post = get_object_or_404(SkillPost, pk=post_id, is_active=True)
+
+    # Cannot resubmit if previously rejected/declined
+    if SwapSession.objects.filter(
+        post=post,
+        status=SwapSession.Status.DECLINED
+    ).filter(Q(learner=request.user) | Q(teacher=request.user)).exists():
+        messages.error(request, _("This skill swap request was previously rejected/declined and cannot be resubmitted."))
+        return redirect("swaps:list")
 
     if request.method == "POST":
         proposed_time_raw = request.POST.get("proposed_time")

@@ -1,18 +1,14 @@
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 import os
 import uuid
 from core.storage import private_storage
-
-
-
-from django.core.validators import MinValueValidator, MaxValueValidator
 from datetime import timedelta
-
 from django.utils import timezone
+
 
 def validate_pdf_header(file):
     pos = file.tell() if hasattr(file, "tell") else 0
@@ -29,7 +25,6 @@ def validate_file_size(file):
     max_mb = getattr(settings, "NOTE_MAX_UPLOAD_MB", 20)
     if file.size > max_mb * 1024 * 1024:
         raise ValidationError(_("File is too large. Maximum size is %(mb)s MB.") % {"mb": max_mb})
-
 
 
 def note_file_upload_to(instance, filename):
@@ -126,6 +121,11 @@ class Note(models.Model):
     def __str__(self):
         return f"{self.course_code} - {self.title}"
     
+    def delete(self, *args, **kwargs):
+        if self.status in (self.Status.APPROVED, self.Status.UNVERIFIED):
+            raise PermissionDenied("Published notes cannot be deleted.")
+        return super().delete(*args, **kwargs)
+
     @property
     def is_overdue(self):
         if self.status != self.Status.PENDING:
@@ -139,6 +139,7 @@ class Note(models.Model):
         left = self.created_at + timedelta(days=settings.NOTE_AUTOPUBLISH_DAYS) - timezone.now()
         return max(0, left.days)
     
+
 class NoteDownload(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='downloaded_notes')
     note = models.ForeignKey('Note', on_delete=models.CASCADE, related_name='downloads')
@@ -150,6 +151,7 @@ class NoteDownload(models.Model):
     def __str__(self):
         return f"{self.user.username} downloaded {self.note.title}"
     
+
 class NoteRating(models.Model):
     owner_rewarded = models.BooleanField(default=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='given_ratings')
