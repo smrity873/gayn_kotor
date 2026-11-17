@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.http import require_POST
 
 from credits.services import get_balance
 
@@ -156,11 +157,6 @@ def post_edit(request, pk):
     if post.user_id != request.user.id and not request.user.is_superuser:
         raise PermissionDenied(_("You can only edit your own posts."))
 
-    if post.is_active:
-        raise PermissionDenied(_("Published skill swap posts cannot be updated or modified by any role."))
-    else:
-        raise PermissionDenied(_("Inactive skill swap posts cannot be updated or resubmitted."))
-
     if request.method == "POST":
         form = SkillPostForm(request.POST, instance=post)
         if form.is_valid():
@@ -174,20 +170,35 @@ def post_edit(request, pk):
 
 
 @login_required
+@require_POST
 def post_deactivate(request, pk):
-    """Deactivates a skill post."""
+    """Deactivates or toggles active status of a skill post."""
     post = get_object_or_404(SkillPost, pk=pk)
     if post.user_id != request.user.id and not request.user.is_superuser:
-        raise PermissionDenied(_("You can only deactivate your own posts."))
+        raise PermissionDenied(_("You can only modify your own posts."))
 
-    if post.is_active:
-        raise PermissionDenied(_("Published skill swap posts cannot be updated or deleted by any role."))
+    post.is_active = not post.is_active
+    post.save(update_fields=["is_active"])
+    status_label = _("activated") if post.is_active else _("deactivated")
+    messages.success(request, _("Skill post %(status)s.") % {"status": status_label})
+    return redirect(f"{reverse('swaps:list')}?tab=my_posts")
 
-    if request.method == "POST":
-        post.is_active = False
-        post.save(update_fields=["is_active"])
-        messages.success(request, _("Skill post deactivated."))
 
+@login_required
+@require_POST
+def post_delete(request, pk):
+    """Deletes a skill post."""
+    post = get_object_or_404(SkillPost, pk=pk)
+    if post.user_id != request.user.id and not request.user.is_superuser:
+        raise PermissionDenied(_("You can only delete your own posts."))
+
+    name = post.skill_name
+    post.delete()
+    messages.success(request, _('Skill post "%(name)s" has been deleted.') % {"name": name})
+
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url and next_url.startswith("/"):
+        return redirect(next_url)
     return redirect(f"{reverse('swaps:list')}?tab=my_posts")
 
 

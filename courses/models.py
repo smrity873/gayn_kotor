@@ -63,6 +63,7 @@ class Course(models.Model):
         choices=Status.choices,
         default=Status.DRAFT,
     )
+    reward_paid = models.BooleanField(default=False)
     total_duration_seconds = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -74,8 +75,17 @@ class Course(models.Model):
         return self.title
 
     def delete(self, *args, **kwargs):
-        if self.status == self.Status.PUBLISHED:
-            raise PermissionDenied("Published courses cannot be deleted.")
+        if self.reward_paid:
+            try:
+                from .services import deduct_course_credits_on_delete
+                deduct_course_credits_on_delete(self)
+            except Exception:
+                pass
+        if self.thumbnail:
+            try:
+                self.thumbnail.delete(save=False)
+            except Exception:
+                pass
         return super().delete(*args, **kwargs)
 
     @property
@@ -134,8 +144,11 @@ class Lesson(models.Model):
         return f"{self.course.title} - #{self.order} {self.title}"
 
     def delete(self, *args, **kwargs):
-        if self.course.status == Course.Status.PUBLISHED:
-            raise PermissionDenied("Lessons belonging to a published course cannot be deleted.")
+        if self.video_file:
+            try:
+                self.video_file.delete(save=False)
+            except Exception:
+                pass
         return super().delete(*args, **kwargs)
 
     @property

@@ -146,6 +146,24 @@
         </form>
     </div>
 
+    <!-- Danger Zone: Delete Course -->
+    <div class="mt-8 rounded-3xl border border-rose-200 bg-rose-50/50 p-6 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20 sm:p-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-rose-800 dark:text-rose-300">Delete Course</h2>
+                <p class="mt-1 text-xs text-rose-700/80 dark:text-rose-400/80">
+                    Permanently delete this course and all associated lessons. This action cannot be undone.
+                </p>
+            </div>
+            <form method="post" action="{% url 'courses:course_delete' course.id %}" onsubmit="return confirm('Are you completely sure you want to permanently delete \'{{ course.title|escapejs }}\'? All lessons will be lost.');">
+                {% csrf_token %}
+                <button type="submit" class="rounded-2xl border border-rose-400 bg-rose-600 px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md hover:bg-rose-700 transition">
+                    Delete Course
+                </button>
+            </form>
+        </div>
+    </div>
+
 </section>
 {% endblock %}
 

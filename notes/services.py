@@ -360,21 +360,76 @@ def make_preview(note):
         return False
 
 @transaction.atomic
-def remove_note(note, by, reason, reverse_reward=False):
+def deduct_note_credits_on_delete(note):
+    """
+    Reverses all nuts earned by the note owner for this note (upload reward + ratings received).
+    Uses reverse_entry() on matching entries to preserve reversal lineage,
+    or writes a REVERSAL row with allow_negative=True.
+    Returns the total nuts deducted.
+    """
+    from credits.services import reverse_entry
+    owner = note.owner
+    total_deducted = 0
+    upload_reward = getattr(settings, "NOTE_UPLOAD_REWARD", UPLOAD_REWARD)
+
+    # 1. Reverse upload reward if paid
+    if note.reward_paid:
+        upload_entries = list(
+            CreditLedger.objects.filter(
+                user=owner,
+                reason=CreditLedger.Reason.NOTE_UPLOAD,
+                reversed_by__isnull=True,
+            ).filter(
+                Q(description__icontains=note.title) | Q(description__icontains=str(note.id))
+            )
+        )
+        if upload_entries:
+            for entry in upload_entries:
+                try:
+                    reverse_entry(entry)
+                    total_deducted += entry.amount
+                except ValueError:
+                    pass
+        else:
+            add_entry(
+                owner,
+                -upload_reward,
+                CreditLedger.Reason.REVERSAL,
+                f"Reward reversed: Note '{note.title}' deleted",
+                allow_negative=True,
+                notify=True,
+            )
+            total_deducted += upload_reward
+        note.reward_paid = False
+
+    # 2. Reverse rating rewards received for this note
+    rating_entries = list(
+        CreditLedger.objects.filter(
+            user=owner,
+            reason=CreditLedger.Reason.RATING_RECEIVED,
+            reversed_by__isnull=True,
+        ).filter(
+            Q(description__icontains=note.title) | Q(description__icontains=str(note.id))
+        )
+    )
+    for entry in rating_entries:
+        try:
+            reverse_entry(entry)
+            total_deducted += entry.amount
+        except ValueError:
+            pass
+
+    return total_deducted
+
+
+@transaction.atomic
+def remove_note(note, by, reason, reverse_reward=True):
     """Sets REMOVED, notifies the owner, and if reverse_reward and the reward was paid,
     writes a REVERSAL ledger row with allow_negative=True."""
     note.status = Note.Status.REMOVED
-    note.save(update_fields=["status"])
-
     if reverse_reward and note.reward_paid:
-        add_entry(
-            note.owner,
-            -UPLOAD_REWARD,
-            CreditLedger.Reason.REVERSAL,
-            f"Reward reversed: {reason}",
-            allow_negative=True,
-            notify=False,
-        )
+        deduct_note_credits_on_delete(note)
+    note.save(update_fields=["status", "reward_paid"])
 
     notify(
         note.owner,

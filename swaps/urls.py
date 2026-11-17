@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.swap_list, name="list"),
     path("posts/create/", views.post_create, name="post_create"),
     path("posts/<int:pk>/edit/", views.post_edit, name="post_edit"),
+    path("posts/<int:pk>/delete/", views.post_delete, name="post_delete"),
     path("posts/<int:pk>/deactivate/", views.post_deactivate, name="post_deactivate"),
     path("request/<int:post_id>/", views.session_request, name="session_request"),
     path("session/<int:pk>/", views.session_detail, name="session_detail"),

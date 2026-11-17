@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -9,7 +10,7 @@ from django.utils.translation import gettext as _
 
 from credits.services import grant_signup_bonus
 
-from .forms import SignUpForm
+from .forms import ProfilePictureForm, SignUpForm
 from .services import send_verification_email, verify_token
 
 User = get_user_model()
@@ -102,6 +103,7 @@ def profile(request):
     user = request.user
     context = {
         "profile_user": user,
+        "avatar_form": ProfilePictureForm(instance=user),
     }
     if user.role == User.Role.STUDENT and hasattr(user, "membership"):
         context["membership"] = user.membership
@@ -111,3 +113,44 @@ def profile(request):
         context["batches"] = user.class_teacher_of.select_related("department").all()
 
     return render(request, "accounts/profile.html", context)
+
+
+@login_required
+@require_POST
+def profile_picture_upload(request):
+    form = ProfilePictureForm(request.POST, request.FILES, instance=request.user)
+    if form.is_valid():
+        form.save()
+        messages.success(request, _("Profile picture updated successfully!"))
+    else:
+        for err_list in form.errors.values():
+            for err in err_list:
+                messages.error(request, err)
+    return redirect("accounts:profile")
+
+
+@login_required
+@require_POST
+def profile_picture_delete(request):
+    user = request.user
+    if user.profile_picture:
+        try:
+            user.profile_picture.delete(save=False)
+        except Exception:
+            pass
+        user.profile_picture = None
+        user.profile_picture_url = ""
+        user.save(update_fields=["profile_picture", "profile_picture_url"])
+        messages.success(request, _("Profile picture removed."))
+    return redirect("accounts:profile")
+
+
+def user_avatar(request, pk):
+    from django.http import Http404
+    user = get_object_or_404(User, pk=pk)
+    avatar_url = user.avatar_url
+    if not avatar_url:
+        raise Http404(_("User has no avatar."))
+    return redirect(avatar_url)
+
+

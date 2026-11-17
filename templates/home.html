@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ SITE_NAME }} - Share what you know. Learn what you want.{% endblock %}
 
@@ -73,6 +74,68 @@
     </div>
 </section>
 
+<!-- ANIMATED SQUIRREL KNOWLEDGE GROVE (IMPROVEMENTS.MD SECTION 4) -->
+<section class="mx-auto max-w-6xl px-6 mb-16">
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-forest to-green-800 p-8 text-white shadow-xl dark:from-emerald-950 dark:via-forest-deep dark:to-green-950 border border-green-500/20">
+        <!-- Floating animated backdrop glow circles -->
+        <div class="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl animate-pulse"></div>
+        <div class="pointer-events-none absolute -bottom-12 -left-12 h-64 w-64 rounded-full bg-amber-400/20 blur-3xl animate-pulse" style="animation-delay: 1.5s;"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div class="max-w-xl text-center md:text-left">
+                <div class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-sm text-emerald-100 ring-1 ring-white/20">
+                    <span class="animate-bounce">🐿️</span> The Squirrel's Knowledge Grove
+                </div>
+                <h2 class="mt-4 text-2xl sm:text-3xl font-black tracking-tight leading-tight text-white">
+                    Unlock Knowledge. Share Notes. <br class="hidden sm:inline">Earn Nuts Every Step of the Way.
+                </h2>
+                <p class="mt-2.5 text-sm sm:text-base text-emerald-100/90 leading-relaxed">
+                    Peer-reviewed campus notes, verified class lectures, and live peer skill swap sessions. Every note you share earns you nuts to grow your academic vault!
+                </p>
+
+                <!-- Animated Knowledge Flow Badges -->
+                <div class="mt-5 flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-md transition duration-300 hover:scale-105">
+                        <span class="text-amber-300">🌰</span> 1 Note = 10 Nuts
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-md transition duration-300 hover:scale-105">
+                        <span class="text-emerald-300">✓</span> Teacher & CR Verified
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-md transition duration-300 hover:scale-105">
+                        <span class="text-blue-300">🤝</span> 1-on-1 Meet Swaps
+                    </span>
+                </div>
+            </div>
+
+            <!-- Animated Mascot Interactive Badge -->
+            <div class="relative flex-shrink-0 group cursor-pointer" onclick="this.classList.toggle('scale-105')">
+                <div class="relative h-44 w-44 sm:h-52 sm:w-52 flex items-center justify-center">
+                    <!-- Spinning glowing orbital ring -->
+                    <div class="absolute inset-0 rounded-full border-2 border-dashed border-emerald-300/40 animate-spin" style="animation-duration: 25s;"></div>
+                    <div class="absolute -inset-2 rounded-full bg-gradient-to-tr from-amber-400/30 to-emerald-300/30 blur-xl animate-pulse"></div>
+
+                    <!-- Mascot Image with Floating Keyframe -->
+                    <img src="{% static 'images/logo-mascot.webp' %}" alt="Gayn Kotor Mascot"
+                         class="relative z-10 h-36 w-36 sm:h-44 sm:w-44 object-contain rounded-full shadow-2xl transition duration-500 group-hover:scale-110 group-hover:rotate-3"
+                         style="animation: floatGentle 4s ease-in-out infinite;">
+
+                    <!-- Speech Bubble -->
+                    <div class="absolute -bottom-2 sm:-bottom-3 bg-white text-green-950 font-black text-[11px] sm:text-xs px-3 py-1 rounded-full shadow-lg border border-green-200 dark:border-green-800 whitespace-nowrap z-20">
+                        Gather nuts, learn together! 🌰
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+@keyframes floatGentle {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(1.5deg); }
+}
+</style>
+
 <!-- POPULAR STUDY NOTES -->
 <section class="mx-auto max-w-6xl px-6 mb-20">
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-4">
@@ -89,31 +152,39 @@
     {% if popular_notes %}
     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {% for note in popular_notes %}
-        <article class="group flex flex-col justify-between rounded-2xl border border-green-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-green-900/60 dark:bg-card-dark">
-            <div>
-                <div class="flex items-center justify-between text-xs text-green-800/70 dark:text-green-300/70">
-                    <span class="rounded-full bg-green-100 px-2.5 py-0.5 font-bold text-green-800 dark:bg-green-900/50 dark:text-green-200">
-                        {{ note.department.code }}
-                    </span>
-                    <span class="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                        🌰 {{ note.price }} nuts
-                    </span>
+        <article class="group flex flex-col justify-between overflow-hidden rounded-2xl border border-green-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-green-900/60 dark:bg-card-dark">
+            <div class="relative aspect-[16/10] overflow-hidden bg-green-50 dark:bg-green-950/40">
+                <div class="absolute inset-0 flex items-center justify-center text-green-600/30 dark:text-green-300/20">
+                    <svg class="h-12 w-12" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5M9 13h6M9 17h6"/></svg>
                 </div>
-                <h3 class="mt-4 text-lg font-bold text-green-950 group-hover:text-green-700 dark:text-green-50 dark:group-hover:text-green-300 line-clamp-2">
-                    <a href="{% url 'notes:detail' note.id %}">{{ note.title }}</a>
-                </h3>
-                <p class="mt-2 text-xs text-green-900/60 dark:text-green-100/60 line-clamp-2">
-                    {{ note.description|default:"No description provided." }}
-                </p>
+                <img src="{% url 'notes:preview' note.id %}" alt="{{ note.title }}" loading="lazy" onerror="this.style.display='none'"
+                     class="absolute inset-0 h-full w-full object-cover object-top transition duration-500 group-hover:scale-105">
+                <span class="absolute left-3 top-3 rounded-full bg-white/95 dark:bg-card-dark/90 px-3 py-1 text-xs font-bold text-green-800 dark:text-green-300 shadow">
+                    {{ note.department.code }}
+                </span>
+                <span class="absolute right-3 top-3 rounded-full bg-amber-500/90 text-white px-2.5 py-1 text-xs font-bold shadow">
+                    🌰 {{ note.price }} nuts
+                </span>
             </div>
 
-            <div class="mt-6 flex items-center justify-between border-t border-green-100/60 pt-4 text-xs dark:border-green-900/40">
-                <span class="text-green-900/60 dark:text-green-200/60">
-                    By <strong class="text-green-950 dark:text-green-100">{{ note.owner.username }}</strong>
-                </span>
-                <span class="font-medium text-green-700 dark:text-green-400">
-                    🔓 {{ note.unlocks_count }} unlocks
-                </span>
+            <div class="p-5 flex flex-1 flex-col justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-green-950 group-hover:text-green-700 dark:text-green-50 dark:group-hover:text-green-300 line-clamp-2">
+                        <a href="{% url 'notes:detail' note.id %}">{{ note.title }}</a>
+                    </h3>
+                    <p class="mt-2 text-xs text-green-900/60 dark:text-green-100/60 line-clamp-2">
+                        {{ note.description|default:"No description provided." }}
+                    </p>
+                </div>
+
+                <div class="mt-5 flex items-center justify-between border-t border-green-100/60 pt-4 text-xs dark:border-green-900/40">
+                    <span class="text-green-900/60 dark:text-green-200/60">
+                        By <strong class="text-green-950 dark:text-green-100">{{ note.owner.username }}</strong>
+                    </span>
+                    <span class="font-medium text-green-700 dark:text-green-400">
+                        🔓 {{ note.unlocks_count }} unlocks
+                    </span>
+                </div>
             </div>
         </article>
         {% endfor %}

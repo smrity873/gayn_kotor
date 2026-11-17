@@ -1,10 +1,17 @@
+import os
 import re
+import uuid
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+
+def user_avatar_upload_to(instance, filename):
+    ext = os.path.splitext(filename)[1].lower() or ".jpg"
+    return f"avatars/{instance.pk or uuid.uuid4().hex[:12]}-{uuid.uuid4().hex[:8]}{ext}"
 
 
 class User(AbstractUser):
@@ -23,6 +30,18 @@ class User(AbstractUser):
         max_length=30,
         unique=True,
     )
+    profile_picture = models.ImageField(
+        _("profile picture"),
+        upload_to=user_avatar_upload_to,
+        blank=True,
+        null=True,
+    )
+    profile_picture_url = models.URLField(
+        _("profile picture URL"),
+        max_length=1000,
+        blank=True,
+        default="",
+    )
     is_email_verified = models.BooleanField(default=False)
     email_verified_at = models.DateTimeField(null=True, blank=True)
     suspended_at = models.DateTimeField(null=True, blank=True)
@@ -38,7 +57,38 @@ class User(AbstractUser):
     @property
     def is_verified(self):
         return self.email_verified_at is not None
+
+    @property
+    def avatar_url(self):
+        if self.profile_picture:
+            try:
+                return self.profile_picture.url
+            except Exception:
+                pass
+        if self.profile_picture_url:
+            url = self.profile_picture_url
+            if "neon.tech" in url and "X-Amz-" not in url:
+                try:
+                    from django.core.files.storage import default_storage
+                    if "/media/" in url:
+                        key = url.split("/media/", 1)[1]
+                        return default_storage.url(key)
+                except Exception:
+                    pass
+            return url
+        return ""
+
     REQUIRED_FIELDS = []
+
+    def save(self, *args, **kwargs):
+        if self.profile_picture:
+            try:
+                self.profile_picture_url = self.profile_picture.url
+            except Exception:
+                pass
+        elif not self.profile_picture and self.profile_picture_url:
+            self.profile_picture_url = ""
+        super().save(*args, **kwargs)
 
     def clean(self):
         super().clean()

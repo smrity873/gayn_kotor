@@ -5,15 +5,17 @@ from storages.backends.s3boto3 import S3Boto3Storage
 
 
 class PublicMediaS3Storage(S3Boto3Storage):
-    """Stores public uploaded media (e.g. course thumbnails) on S3 object storage."""
+    """Stores public uploaded media (e.g. course thumbnails, avatars) on S3 object storage."""
     file_overwrite = False
     default_acl = None
-    querystring_auth = False
+    querystring_auth = True
+    querystring_expire = 604800  # 7 days (maximum allowed by AWS SigV4)
 
     def __init__(self, **settings_dict):
         settings_dict.setdefault("bucket_name", getattr(settings, "AWS_STORAGE_BUCKET_NAME", "uploads"))
         settings_dict.setdefault("endpoint_url", getattr(settings, "AWS_S3_ENDPOINT_URL", None))
         settings_dict.setdefault("region_name", getattr(settings, "AWS_S3_REGION_NAME", "ap-southeast-1"))
+        settings_dict.setdefault("signature_version", getattr(settings, "AWS_S3_SIGNATURE_VERSION", "s3v4"))
         settings_dict.setdefault("location", "media")
         super().__init__(**settings_dict)
 

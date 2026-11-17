@@ -65,7 +65,7 @@ class Note(models.Model):
     )
     semester = models.PositiveSmallIntegerField(
         _("semester"),
-        validators=[MinValueValidator(1), MaxValueValidator(12)],
+        validators=[MinValueValidator(1), MaxValueValidator(8)],
     )
     description = models.TextField(_("description"), blank=True)
     visibility = models.CharField(

@@ -132,11 +132,19 @@
 
                 <!-- Action Button -->
                 <div class="pt-2">
-                    {% if is_seller %}
-                    <a href="{% url 'courses:course_edit' course.id %}"
-                        class="block w-full rounded-2xl bg-forest px-6 py-3.5 text-center text-sm font-bold text-white shadow-md hover:bg-forest-deep transition">
-                        Manage Your Course
-                    </a>
+                    {% if is_seller or user.is_superuser %}
+                    <div class="space-y-2">
+                        <a href="{% url 'courses:course_edit' course.id %}"
+                            class="block w-full rounded-2xl bg-forest px-6 py-3.5 text-center text-sm font-bold text-white shadow-md hover:bg-forest-deep transition">
+                            Manage Your Course
+                        </a>
+                        <form method="post" action="{% url 'courses:course_delete' course.id %}" onsubmit="return confirm('Are you sure you want to permanently delete this course?');">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full rounded-2xl border border-red-300 bg-red-50 py-2.5 text-center text-xs font-bold text-red-600 hover:bg-red-600 hover:text-white transition dark:border-red-900 dark:bg-red-950/40 dark:text-red-400">
+                                Delete Course
+                            </button>
+                        </form>
+                    </div>
                     {% elif has_purchased %}
                     <div class="space-y-2">
                         <div class="rounded-xl bg-emerald-50 p-2.5 text-center text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">

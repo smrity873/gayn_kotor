@@ -1,3 +1,4 @@
+import os
 from django import forms
 from django.conf import settings
 
@@ -13,6 +14,8 @@ FILE_CLASSES = (
     "dark:border-green-800 dark:bg-canvas-dark dark:text-green-50"
 )
 
+SEMESTER_CHOICES = [(i, f"Semester {i}") for i in range(1, 9)]
+
 
 class NoteForm(forms.ModelForm):
     class Meta:
@@ -26,6 +29,11 @@ class NoteForm(forms.ModelForm):
 
         for name, field in self.fields.items():
             field.widget.attrs["class"] = FILE_CLASSES if name == "file" else INPUT_CLASSES
+
+        self.fields["semester"].widget = forms.Select(
+            choices=[("", "Select semester")] + SEMESTER_CHOICES,
+            attrs={"class": INPUT_CLASSES}
+        )
 
         self.fields["file"].widget.attrs["accept"] = "application/pdf"
         self.fields["file"].help_text = f"PDF only, up to {getattr(settings, 'NOTE_MAX_UPLOAD_MB', 20)} MB."
@@ -49,3 +57,30 @@ class NoteForm(forms.ModelForm):
             validate_file_size(file)
             validate_pdf_header(file)
         return file
+
+
+class NoteEditForm(forms.ModelForm):
+    class Meta:
+        model = Note
+        fields = ("title", "course_code", "department", "semester", "description", "visibility")
+        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+        for name, field in self.fields.items():
+            field.widget.attrs["class"] = INPUT_CLASSES
+
+        self.fields["semester"].widget = forms.Select(
+            choices=[("", "Select semester")] + SEMESTER_CHOICES,
+            attrs={"class": INPUT_CLASSES}
+        )
+
+        if user is not None and user.role == User.Role.LECTURER:
+            self.fields["visibility"].choices = [
+                c for c in Note.Visibility.choices if c[0] != Note.Visibility.BATCH
+            ]
+
+    def clean_course_code(self):
+        return self.cleaned_data["course_code"].strip().upper()

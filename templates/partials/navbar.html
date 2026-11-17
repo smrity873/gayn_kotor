@@ -1,10 +1,10 @@
+{% load static %}
 <header class="sticky top-0 z-50 border-b border-green-100 bg-white shadow-sm dark:border-green-900 dark:bg-green-950">
   <nav class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
 
     <!-- Logo -->
-    <a href="{% url 'core:home' %}" class="flex shrink-0 items-center gap-2">
-      <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 text-xl shadow-md shadow-green-600/30">🐿️</span>
-      <span class="hidden text-xl font-bold text-green-800 dark:text-green-300 sm:inline">{{ SITE_NAME }}</span>
+    <a href="{% url 'core:home' %}" class="flex shrink-0 items-center gap-2 group py-1">
+      <img src="{% static 'images/logo-banner.webp' %}" alt="{{ SITE_NAME }}" class="h-9 sm:h-10 w-auto object-contain transition duration-200 group-hover:scale-105">
     </a>
 
     <!-- Search bar (large screens only) -->
@@ -58,14 +58,26 @@
       </button>
       {% endif %}
 
+      {% if user.is_authenticated %}
       <!-- Profile button (opens popup) -->
-      <button id="profile-btn" onclick="toggleProfile()" aria-label="Profile" class="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-base font-bold uppercase text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">
-        {% if user.is_authenticated %}
-        {{ user.first_name|default:user.username|first }}
+      <button id="profile-btn" onclick="toggleProfile()" aria-label="Profile" class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-green-600 text-base font-bold uppercase text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">
+        {% if user.avatar_url %}
+        <img src="{{ user.avatar_url }}" alt="{{ user.username }}" class="h-full w-full object-cover">
         {% else %}
-        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z" /></svg>
+        {{ user.first_name|default:user.username|first }}
         {% endif %}
       </button>
+      {% else %}
+      <!-- Auth buttons (when not logged in) -->
+      <div class="flex items-center gap-2">
+        <a href="{% url 'accounts:login' %}" class="rounded-full border border-green-600 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">
+          Log in
+        </a>
+        <a href="{% url 'accounts:signup' %}" class="rounded-full bg-green-600 px-4 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-sm shadow-green-600/30 transition hover:bg-green-700">
+          Sign up
+        </a>
+      </div>
+      {% endif %}
 
       <!-- Hamburger (medium and small screens only) -->
       <button id="menu-btn" onclick="toggleMenu()" aria-label="Menu" class="relative flex h-10 w-10 items-center justify-center rounded-full border border-green-200 text-green-700 transition hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-900/50 lg:hidden">
@@ -94,6 +106,18 @@
       <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
       Dashboard
     </a>
+
+    <a href="{% url 'notes:list' %}?tab=mine" class="flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition hover:bg-green-50 dark:hover:bg-green-900/50">
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+      My Notes
+    </a>
+
+    {% if ENABLE_VIDEO_COURSES %}
+    <a href="{% url 'courses:my_courses' %}" class="flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition hover:bg-green-50 dark:hover:bg-green-900/50">
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+      My Courses
+    </a>
+    {% endif %}
 
     <a href="{% url 'credits:hollow' %}" class="flex items-center justify-between rounded-xl px-4 py-3 font-medium transition hover:bg-green-50 dark:hover:bg-green-900/50">
       <span class="flex items-center gap-3">
@@ -168,6 +192,11 @@
 
     <a href="{% url 'core:dashboard' %}" class="mb-2 block rounded-full border border-green-600 py-2.5 text-center font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">Dashboard</a>
     <a href="{% url 'accounts:profile' %}" class="mb-2 block rounded-full border border-green-600 py-2.5 text-center font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">My Profile</a>
+    <a href="{% url 'notes:list' %}?tab=mine" class="mb-2 block rounded-full border border-green-600 py-2.5 text-center font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">My Notes</a>
+    {% if ENABLE_VIDEO_COURSES %}
+    <a href="{% url 'courses:my_courses' %}" class="mb-2 block rounded-full border border-green-600 py-2.5 text-center font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">My Courses</a>
+    {% endif %}
+    <a href="{% url 'swaps:list' %}?tab=my_sessions" class="mb-2 block rounded-full border border-green-600 py-2.5 text-center font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">My Swaps</a>
     <a href="{% url 'notes:upload' %}" class="mb-2 block rounded-full border border-green-600 py-2.5 text-center font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-400 dark:text-green-300 dark:hover:bg-green-900/50">Upload a note</a>
 
     {% if user.is_superuser or user.class_teacher_of.exists or user.membership.is_cr %}

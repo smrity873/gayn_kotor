@@ -166,3 +166,21 @@ class StyledPasswordChangeForm(PasswordChangeForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs["class"] = INPUT_CLASSES
+
+
+class ProfilePictureForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ("profile_picture",)
+
+    def clean_profile_picture(self):
+        pic = self.cleaned_data.get("profile_picture")
+        if pic:
+            import os
+            if pic.size > 5 * 1024 * 1024:
+                raise forms.ValidationError("Image file is too large. Maximum size is 5 MB.")
+            ext = os.path.splitext(pic.name)[1].lower()
+            if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+                raise forms.ValidationError("Unsupported image format. Please upload a JPG, PNG, WEBP, or GIF image.")
+        return pic
+

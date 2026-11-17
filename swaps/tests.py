@@ -93,9 +93,10 @@ class SwapPermissionAndAccessTests(TestCase):
         )
         self.assertEqual(res.status_code, 403)
 
-    def test_non_teacher_cannot_set_meeting_link(self):
+    def test_non_participant_cannot_set_meeting_link(self):
+        outsider = make_student(username="outsider", email="out@example.com")
         with self.assertRaises(PermissionDenied):
-            set_meeting_link(self.session, self.learner, "https://meet.google.com/abc-defg-hij")
+            set_meeting_link(self.session, outsider, "https://meet.google.com/abc-defg-hij")
 
     def test_unverified_user_cannot_create_post(self):
         unverified = make_student(
@@ -311,3 +312,60 @@ class SwapDepositStateMachineTests(TestCase):
 
         with self.assertRaises(InsufficientCreditsError):
             confirm_time(session, poor_learner)
+
+
+class SkillPostEditDeleteTests(TestCase):
+    def setUp(self):
+        self.author = make_student(username="post_author", email="author@test.com")
+        self.other_user = make_student(username="other_person", email="other@test.com")
+        self.client = Client()
+        self.post = create_skill_post(
+            user=self.author,
+            kind=SkillPost.Kind.OFFER,
+            skill_name="Django Web Development",
+            description="I can teach Django from scratch.",
+        )
+
+    def test_author_can_edit_post(self):
+        self.client.force_login(self.author)
+        res = self.client.post(
+            reverse("swaps:post_edit", args=[self.post.id]),
+            {
+                "kind": SkillPost.Kind.OFFER,
+                "skill_name": "Django & React Web Development",
+                "description": "Updated description with React.",
+                "is_active": True,
+            },
+        )
+        self.assertRedirects(res, f"{reverse('swaps:list')}?tab=my_posts")
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.skill_name, "Django & React Web Development")
+        self.assertEqual(self.post.description, "Updated description with React.")
+
+    def test_other_user_cannot_edit_post(self):
+        self.client.force_login(self.other_user)
+        res = self.client.post(
+            reverse("swaps:post_edit", args=[self.post.id]),
+            {
+                "kind": SkillPost.Kind.OFFER,
+                "skill_name": "Hacked Skill",
+                "description": "Should fail.",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(res.status_code, 403)
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.skill_name, "Django Web Development")
+
+    def test_author_can_delete_post(self):
+        self.client.force_login(self.author)
+        res = self.client.post(reverse("swaps:post_delete", args=[self.post.id]))
+        self.assertRedirects(res, f"{reverse('swaps:list')}?tab=my_posts")
+        self.assertFalse(SkillPost.objects.filter(id=self.post.id).exists())
+
+    def test_other_user_cannot_delete_post(self):
+        self.client.force_login(self.other_user)
+        res = self.client.post(reverse("swaps:post_delete", args=[self.post.id]))
+        self.assertEqual(res.status_code, 403)
+        self.assertTrue(SkillPost.objects.filter(id=self.post.id).exists())
+

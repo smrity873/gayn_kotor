@@ -44,18 +44,60 @@
                 </p>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2.5">
                 {% if student %}
-                <a href="{% url 'credits:hollow' %}" class="inline-flex items-center gap-2 rounded-2xl border border-green-200/60 bg-white px-4 py-2 text-xs font-bold text-amber-600 shadow-sm transition hover:bg-green-50 dark:border-green-800 dark:bg-neutral-800 dark:text-amber-400">
-                    <span class="text-base">🌰</span>
+                <a href="{% url 'credits:hollow' %}" class="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-white/90 px-3.5 py-2 text-xs font-bold text-amber-700 shadow-sm transition hover:bg-amber-50 dark:border-amber-800 dark:bg-card-dark dark:text-amber-400">
+                    <span class="text-sm">🌰</span>
                     <span>{{ student.nut_balance }} nuts</span>
                 </a>
                 {% endif %}
-                <a href="{% url 'notes:upload' %}" class="rounded-full bg-green-600 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">
-                    Upload Note
+                <a href="{% url 'notes:list' %}?tab=mine" class="inline-flex items-center gap-1.5 rounded-full border border-green-300 bg-white/90 px-3.5 py-2 text-xs font-bold text-green-900 shadow-sm transition hover:bg-green-50 dark:border-green-800 dark:bg-card-dark dark:text-green-100 dark:hover:bg-green-950/40">
+                    <svg class="h-4 w-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+                    My Notes
+                </a>
+                {% if ENABLE_VIDEO_COURSES %}
+                <a href="{% url 'courses:my_courses' %}" class="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-white/90 px-3.5 py-2 text-xs font-bold text-emerald-900 shadow-sm transition hover:bg-emerald-50 dark:border-emerald-800 dark:bg-card-dark dark:text-emerald-100 dark:hover:bg-emerald-950/40">
+                    <svg class="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                    My Courses
+                </a>
+                {% endif %}
+                <a href="{% url 'swaps:list' %}?tab=my_sessions" class="inline-flex items-center gap-1.5 rounded-full border border-teal-300 bg-white/90 px-3.5 py-2 text-xs font-bold text-teal-900 shadow-sm transition hover:bg-teal-50 dark:border-teal-800 dark:bg-card-dark dark:text-teal-100 dark:hover:bg-teal-950/40">
+                    <svg class="h-4 w-4 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3"/></svg>
+                    My Swaps
+                </a>
+                <a href="{% url 'notes:upload' %}" class="rounded-full bg-green-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">
+                    + Upload Note
                 </a>
             </div>
         </div>
+    </div>
+
+    <!-- Quick Navigation Hub Bar -->
+    <div class="mb-8 flex flex-wrap items-center gap-2 border-b border-green-100 pb-4 dark:border-green-900/60">
+        <span class="mr-2 text-xs font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Quick Access:</span>
+        <a href="{% url 'notes:list' %}?tab=mine" class="inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-green-700">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+            My Notes
+        </a>
+        {% if ENABLE_VIDEO_COURSES %}
+        <a href="{% url 'courses:my_courses' %}" class="inline-flex items-center gap-1.5 rounded-xl bg-forest px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-forest-deep">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+            My Courses
+        </a>
+        <a href="{% url 'courses:course_list' %}" class="inline-flex items-center gap-1.5 rounded-xl border border-green-200 bg-card px-3.5 py-1.5 text-xs font-semibold text-green-900 transition hover:bg-green-50 dark:border-green-800 dark:bg-card-dark dark:text-green-100 dark:hover:bg-green-950/40">
+            Browse All Courses
+        </a>
+        {% endif %}
+        <a href="{% url 'notes:list' %}" class="inline-flex items-center gap-1.5 rounded-xl border border-green-200 bg-card px-3.5 py-1.5 text-xs font-semibold text-green-900 transition hover:bg-green-50 dark:border-green-800 dark:bg-card-dark dark:text-green-100 dark:hover:bg-green-950/40">
+            Browse All Notes
+        </a>
+        <a href="{% url 'swaps:list' %}?tab=my_sessions" class="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-teal-700">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3"/></svg>
+            My Swaps
+        </a>
+        <a href="{% url 'swaps:list' %}" class="inline-flex items-center gap-1.5 rounded-xl border border-green-200 bg-card px-3.5 py-1.5 text-xs font-semibold text-green-900 transition hover:bg-green-50 dark:border-green-800 dark:bg-card-dark dark:text-green-100 dark:hover:bg-green-950/40">
+            Browse All Swaps
+        </a>
     </div>
 
     <!-- 1. STUDENT WIDGETS -->
@@ -175,7 +217,10 @@
         <div class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 class="text-base font-bold text-green-950 dark:text-green-50">My Uploaded Notes</h2>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-base font-bold text-green-950 dark:text-green-50">My Uploaded Notes</h2>
+                        <a href="{% url 'notes:list' %}?tab=mine" class="text-xs font-bold text-green-700 hover:underline dark:text-green-300">View All &rarr;</a>
+                    </div>
                     <p class="text-xs text-green-900/60 dark:text-green-100/60">Track the status of study materials you've shared</p>
                 </div>
                 <!-- Status counts chips -->
@@ -196,7 +241,7 @@
 
             <div class="mt-4 divide-y divide-green-50 border-t border-green-50 dark:divide-green-900/40 dark:border-green-900/40">
                 {% for note in student.my_notes %}
-                <div class="flex items-center justify-between py-3 text-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 gap-2 text-xs">
                     <div>
                         <a href="{% url 'notes:detail' note.id %}" class="font-bold text-green-950 hover:underline dark:text-green-50">
                             {{ note.title }}
@@ -205,19 +250,101 @@
                             {{ note.course_code }} · {{ note.department.code }} · Uploaded {{ note.created_at|date:"d M Y" }}
                         </p>
                     </div>
-                    <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase
-                        {% if note.status == 'approved' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200
-                        {% elif note.status == 'pending' %}bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200
-                        {% elif note.status == 'flagged' %}bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200
-                        {% else %}bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300{% endif %}">
-                        {{ note.get_status_display }}
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase
+                            {% if note.status == 'approved' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200
+                            {% elif note.status == 'pending' %}bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200
+                            {% elif note.status == 'flagged' %}bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200
+                            {% else %}bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300{% endif %}">
+                            {{ note.get_status_display }}
+                        </span>
+                        {% if note.status != 'removed' and note.status != 'rejected' %}
+                        <a href="{% url 'notes:edit' note.id %}" class="rounded-lg border border-green-600/30 px-2.5 py-1 text-[11px] font-semibold text-green-700 hover:bg-green-50 dark:border-green-500/40 dark:text-green-300">
+                            Edit
+                        </a>
+                        {% endif %}
+                        {% if note.status != 'removed' %}
+                        <form method="post" action="{% url 'notes:delete' note.id %}" onsubmit="return confirm('Are you sure you want to delete \'{{ note.title|escapejs }}\'?');" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="rounded-lg border border-red-300 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600 hover:bg-red-600 hover:text-white dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
+                                Delete
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
                 </div>
                 {% empty %}
                 <p class="py-6 text-center text-xs text-green-900/50 dark:text-green-100/50">You haven't uploaded any notes yet.</p>
                 {% endfor %}
             </div>
         </div>
+
+        <!-- Student Courses Hub -->
+        {% if ENABLE_VIDEO_COURSES %}
+        <div class="rounded-2xl border border-green-100 bg-card p-6 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex items-center justify-between border-b border-green-50 pb-3 dark:border-green-900/40">
+                <div>
+                    <h2 class="text-base font-bold text-green-950 dark:text-green-50">My Courses</h2>
+                    <p class="text-xs text-green-900/60 dark:text-green-100/60">Enrolled video lessons & instructor studio</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="{% url 'courses:course_list' %}" class="text-xs text-green-700 hover:underline dark:text-green-300">Browse Courses &rarr;</a>
+                    <a href="{% url 'courses:my_courses' %}" class="rounded-full bg-forest px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-forest-deep transition">
+                        My Courses Studio &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                <!-- Enrolled courses -->
+                <div class="rounded-xl border border-green-50 p-4 dark:border-green-900/30">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-green-900/70 dark:text-green-100/70">Enrolled Courses</h3>
+                    <div class="mt-2 divide-y divide-green-50 text-xs dark:divide-green-900/30">
+                        {% for p in student.enrolled_courses %}
+                        <div class="flex items-center justify-between py-2">
+                            <div>
+                                <a href="{% url 'courses:course_learn' p.course.id %}" class="font-bold text-green-950 hover:underline dark:text-green-50">{{ p.course.title }}</a>
+                                <p class="text-[11px] text-green-900/60 dark:text-green-100/60">By @{{ p.course.instructor.username }}</p>
+                            </div>
+                            <a href="{% url 'courses:course_learn' p.course.id %}" class="rounded-lg bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-emerald-700">Watch</a>
+                        </div>
+                        {% empty %}
+                        <p class="py-4 text-center text-xs text-green-900/50 dark:text-green-100/50">You haven't enrolled in any courses yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Authored courses if student created any -->
+                <div class="rounded-xl border border-green-50 p-4 dark:border-green-900/30">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-green-900/70 dark:text-green-100/70">Courses You Created</h3>
+                    <div class="mt-2 divide-y divide-green-50 text-xs dark:divide-green-900/30">
+                        {% for c in student.my_courses %}
+                        <div class="flex items-center justify-between py-2">
+                            <div>
+                                <a href="{% url 'courses:course_detail' c.id %}" class="font-bold text-green-950 hover:underline dark:text-green-50">{{ c.title }}</a>
+                                <p class="text-[11px] text-green-900/60 dark:text-green-100/60">{{ c.get_status_display }} · ৳{{ c.price }}</p>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <a href="{% url 'courses:course_edit' c.id %}" class="rounded-lg border border-green-600/30 px-2 py-0.5 text-[11px] font-semibold text-green-700 hover:bg-green-50 dark:border-green-500/40 dark:text-green-300">Edit</a>
+                                <form method="post" action="{% url 'courses:course_delete' c.id %}" onsubmit="return confirm('Delete this course?');" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button type="submit" class="rounded-lg border border-red-300 bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600 hover:bg-red-600 hover:text-white">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="py-4 text-center">
+                            <p class="text-xs text-green-900/50 dark:text-green-100/50">You haven't created any courses yet.</p>
+                            <a href="{% url 'courses:course_create' %}" class="mt-1 inline-block text-xs font-bold text-forest hover:underline dark:text-grass-light">+ Create a Course</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 
@@ -259,6 +386,66 @@
             <div class="rounded-2xl border border-green-100 bg-card p-4 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
                 <p class="text-[11px] font-bold uppercase tracking-wider text-green-900/60 dark:text-green-100/60">Open Appeals</p>
                 <p class="mt-2 text-2xl font-black text-purple-600">{{ class_teacher.open_appeals_count }}</p>
+            </div>
+        </div>
+
+        <!-- Batch Class Representatives & Management -->
+        <div class="rounded-2xl border border-green-100 bg-card p-5 shadow-sm dark:border-green-900/60 dark:bg-card-dark">
+            <div class="flex items-center justify-between border-b border-green-50 pb-3 dark:border-green-900/30">
+                <div>
+                    <h3 class="text-sm font-bold text-green-950 dark:text-green-50">Batch Class Representatives</h3>
+                    <p class="text-xs text-green-900/60 dark:text-green-100/60">Appoint and change Class Representatives (CR) for your batches</p>
+                </div>
+                <a href="{{ class_teacher.manage_batch_url }}" class="text-xs text-green-700 hover:underline dark:text-green-300">
+                    All Batch Members &rarr;
+                </a>
+            </div>
+            <div class="mt-4 divide-y divide-green-50 dark:divide-green-900/30">
+                {% for b_data in class_teacher.batch_cr_data %}
+                <div class="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between text-xs">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-green-950 dark:text-green-50 text-sm">{{ b_data.batch.department.code }} - {{ b_data.batch.name }}</span>
+                            {% if b_data.current_cr %}
+                            <span class="rounded-full bg-forest/15 px-2 py-0.5 text-[10px] font-bold text-forest dark:bg-forest/30 dark:text-grass-light">Active CR</span>
+                            {% else %}
+                            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">No CR</span>
+                            {% endif %}
+                        </div>
+                        <p class="mt-0.5 text-[11px] text-green-900/70 dark:text-green-100/70">
+                            Current CR: 
+                            {% if b_data.current_cr %}
+                            <strong class="text-emerald-700 dark:text-emerald-400">{{ b_data.current_cr.user.get_full_name|default:b_data.current_cr.user.username }}</strong>
+                            <span class="text-green-900/60 dark:text-green-100/60">({{ b_data.current_cr.user.email }})</span>
+                            {% else %}
+                            <span class="italic text-neutral-500">None appointed</span>
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <!-- Change CR Form -->
+                    <form method="post" action="{% url 'campus:change_cr' b_data.batch.id %}" class="flex items-center gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <select name="membership_id" class="rounded-xl border border-green-200 bg-white px-2.5 py-1 text-xs text-green-950 focus:border-forest focus:outline-none dark:border-green-800 dark:bg-card-dark dark:text-green-50">
+                            <option value="">-- Change CR --</option>
+                            {% for m in b_data.members %}
+                            <option value="{{ m.id }}" {% if b_data.current_cr and b_data.current_cr.id == m.id %}selected{% endif %}>
+                                {{ m.user.get_full_name|default:m.user.username }} {% if m.user.id_number %}({{ m.user.id_number }}){% endif %}
+                            </option>
+                            {% endfor %}
+                            {% if b_data.current_cr %}
+                            <option value="none">-- Remove CR --</option>
+                            {% endif %}
+                        </select>
+                        <button type="submit" class="rounded-full bg-forest px-3.5 py-1 text-xs font-bold text-white shadow-sm hover:bg-forest-deep transition">
+                            Change CR
+                        </button>
+                    </form>
+                </div>
+                {% empty %}
+                <p class="py-4 text-center text-xs text-green-900/50 dark:text-green-100/50">No batches assigned.</p>
+                {% endfor %}
             </div>
         </div>
 
@@ -385,8 +572,16 @@
                     <div>
                         <a href="{% url 'courses:course_detail' c.id %}" class="font-bold text-green-950 hover:underline dark:text-green-50">{{ c.title }}</a>
                         <span class="ml-2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase {% if c.status == 'published' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200{% endif %}">{{ c.get_status_display }}</span>
+                        <span class="ml-2 text-xs font-semibold text-emerald-600">৳{{ c.price }} BDT</span>
                     </div>
-                    <span class="text-emerald-600 font-semibold">৳{{ c.price }} BDT</span>
+                    <div class="flex items-center gap-1.5">
+                        <a href="{% url 'courses:course_edit' c.id %}" class="rounded-lg border border-green-600/30 px-2 py-0.5 text-[11px] font-semibold text-green-700 hover:bg-green-50 dark:border-green-500/40 dark:text-green-300">Edit</a>
+                        <form method="post" action="{% url 'courses:course_delete' c.id %}" onsubmit="return confirm('Delete this course?');" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="rounded-lg border border-red-300 bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600 hover:bg-red-600 hover:text-white">Delete</button>
+                        </form>
+                    </div>
                 </div>
                 {% empty %}
                 <p class="py-4 text-center text-xs text-green-900/50 dark:text-green-100/50">No courses created yet.</p>
