@@ -594,3 +594,23 @@ def lesson_stream(request, pk):
     response["Accept-Ranges"] = "bytes"
     response["Cache-Control"] = "private"
     return response
+
+
+@login_required
+@require_POST
+def course_delete(request, pk):
+    """Delete a course and all associated lessons and media."""
+    _check_courses_enabled()
+    course = get_object_or_404(Course, pk=pk)
+    if course.instructor_id != request.user.id and not request.user.is_superuser:
+        raise PermissionDenied(_("Only the instructor or an administrator can delete this course."))
+
+    title = course.title
+    course.delete()
+    messages.success(request, _('Course "%(title)s" has been successfully deleted.') % {"title": title})
+
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url and next_url.startswith("/"):
+        return redirect(next_url)
+    return redirect("courses:my_courses")
+

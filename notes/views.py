@@ -629,13 +629,20 @@ def note_edit(request, pk):
 @require_POST
 def note_delete(request, pk):
     note = get_object_or_404(Note, pk=pk)
-    # Per Improvements.md: Restrict deletion access so only teachers can delete notes.
-    if request.user.role != User.Role.LECTURER and not request.user.is_superuser:
-        raise PermissionDenied("Only teachers can delete notes.")
+    is_owner = (note.owner_id == request.user.id)
+    is_teacher = (request.user.role == User.Role.LECTURER)
+    is_admin = request.user.is_superuser
+
+    if not (is_owner or is_teacher or is_admin):
+        raise PermissionDenied("You do not have permission to delete this note.")
 
     title = note.title
     note.status = Note.Status.REMOVED
     note.save(update_fields=["status"])
     messages.success(request, f'Note "{title}" has been deleted.')
+
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url and next_url.startswith("/"):
+        return redirect(next_url)
     return redirect("notes:list")
 

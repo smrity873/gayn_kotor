@@ -144,3 +144,13 @@ def profile_picture_delete(request):
         messages.success(request, _("Profile picture removed."))
     return redirect("accounts:profile")
 
+
+def user_avatar(request, pk):
+    from django.http import Http404
+    user = get_object_or_404(User, pk=pk)
+    avatar_url = user.avatar_url
+    if not avatar_url:
+        raise Http404(_("User has no avatar."))
+    return redirect(avatar_url)
+
+

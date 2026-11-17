@@ -28,6 +28,7 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("profile/picture/upload/", views.profile_picture_upload, name="profile_picture_upload"),
     path("profile/picture/delete/", views.profile_picture_delete, name="profile_picture_delete"),
+    path("avatar/<int:pk>/", views.user_avatar, name="avatar"),
     # Password change
     path(
         "password-change/",

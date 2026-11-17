@@ -393,3 +393,30 @@ class FeatureFlagGatingTests(TestCase):
         for url in endpoints:
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 404, f"{url} was accessible while flag is False!")
+
+
+class CourseDeleteTests(TestCase):
+    def setUp(self):
+        self.instructor = make_lecturer(username="course_author")
+        self.other_user = make_lecturer(username="other_author")
+        self.course = Course.objects.create(
+            instructor=self.instructor,
+            title="Course To Delete",
+            category=Course.Category.ACADEMIC,
+            price=Decimal("50.00"),
+            status=Course.Status.DRAFT,
+        )
+        self.client = Client()
+
+    def test_instructor_can_delete_course(self):
+        self.client.force_login(self.instructor)
+        resp = self.client.post(reverse("courses:course_delete", args=[self.course.id]))
+        self.assertRedirects(resp, reverse("courses:my_courses"))
+        self.assertFalse(Course.objects.filter(id=self.course.id).exists())
+
+    def test_non_instructor_cannot_delete_course(self):
+        self.client.force_login(self.other_user)
+        resp = self.client.post(reverse("courses:course_delete", args=[self.course.id]))
+        self.assertEqual(resp.status_code, 403)
+        self.assertTrue(Course.objects.filter(id=self.course.id).exists())
+

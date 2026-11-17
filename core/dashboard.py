@@ -70,6 +70,17 @@ def build_student_context(user):
         "unread_count": unread_count,
     }
 
+    if getattr(settings, "ENABLE_VIDEO_COURSES", True):
+        from courses.models import Course, CoursePurchase
+        context["enrolled_courses"] = list(
+            CoursePurchase.objects.filter(user=user, is_successful=True)
+            .select_related("course", "course__instructor")
+            .order_by("-purchased_at")[:5]
+        )
+        context["my_courses"] = list(
+            Course.objects.filter(instructor=user).order_by("-created_at")[:5]
+        )
+
     # CR review queue summary if user is an approved CR
     try:
         membership = user.membership

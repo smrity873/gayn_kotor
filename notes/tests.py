@@ -469,14 +469,23 @@ class ImprovementsFeaturesTests(TestCase):
         self.assertEqual(resp_teacher.status_code, 403)
 
     def test_role_based_delete_permissions(self):
-        # 1. Student (even owner) cannot delete note via teacher delete view
-        self.client.force_login(self.owner)
-        resp_student = self.client.post(reverse("notes:delete", args=[self.note.pk]))
-        self.assertEqual(resp_student.status_code, 403)
+        # 1. Non-owner student cannot delete note (PermissionDenied / 403)
+        self.client.force_login(self.other_student)
+        resp_other = self.client.post(reverse("notes:delete", args=[self.note.pk]))
+        self.assertEqual(resp_other.status_code, 403)
         self.note.refresh_from_db()
         self.assertNotEqual(self.note.status, Note.Status.REMOVED)
 
-        # 2. Teacher CAN delete note
+        # 2. Owner student CAN delete their own note
+        self.client.force_login(self.owner)
+        resp_owner = self.client.post(reverse("notes:delete", args=[self.note.pk]))
+        self.assertRedirects(resp_owner, reverse("notes:list"))
+        self.note.refresh_from_db()
+        self.assertEqual(self.note.status, Note.Status.REMOVED)
+
+        # 3. Teacher CAN delete any note
+        self.note.status = Note.Status.APPROVED
+        self.note.save()
         self.client.force_login(self.teacher)
         resp_teacher = self.client.post(reverse("notes:delete", args=[self.note.pk]))
         self.assertRedirects(resp_teacher, reverse("notes:list"))

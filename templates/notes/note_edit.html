@@ -50,6 +50,22 @@
                 </button>
             </div>
         </form>
+
+        <!-- Danger Zone: Delete Note -->
+        <div class="mt-8 border-t border-red-100 pt-6 dark:border-red-900/40">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h3 class="text-sm font-bold text-red-700 dark:text-red-400">Delete this note</h3>
+                    <p class="text-xs text-red-600/70 dark:text-red-300/70">Permanently remove this study note from the platform.</p>
+                </div>
+                <form method="post" action="{% url 'notes:delete' note.pk %}" onsubmit="return confirm('Are you sure you want to delete this note? This action cannot be undone.');">
+                    {% csrf_token %}
+                    <button type="submit" class="rounded-full border border-red-300 bg-red-50 px-5 py-2 text-xs font-bold text-red-600 transition hover:bg-red-600 hover:text-white dark:border-red-800 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-800 dark:hover:text-white">
+                        Delete Note
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}

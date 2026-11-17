@@ -38,7 +38,7 @@ class User(AbstractUser):
     )
     profile_picture_url = models.URLField(
         _("profile picture URL"),
-        max_length=500,
+        max_length=1000,
         blank=True,
         default="",
     )
@@ -65,7 +65,18 @@ class User(AbstractUser):
                 return self.profile_picture.url
             except Exception:
                 pass
-        return self.profile_picture_url or ""
+        if self.profile_picture_url:
+            url = self.profile_picture_url
+            if "neon.tech" in url and "X-Amz-" not in url:
+                try:
+                    from django.core.files.storage import default_storage
+                    if "/media/" in url:
+                        key = url.split("/media/", 1)[1]
+                        return default_storage.url(key)
+                except Exception:
+                    pass
+            return url
+        return ""
 
     REQUIRED_FIELDS = []
 
