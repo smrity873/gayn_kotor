@@ -264,8 +264,29 @@ def course_publish_toggle(request, pk):
         try:
             validate_course_price(course)
             course.status = Course.Status.PUBLISHED
-            course.save(update_fields=["status", "updated_at"])
-            messages.success(request, _("Congratulations! Your course is now published and available in the catalog."))
+            reward_nuts = 0
+            if not course.reward_paid:
+                course.reward_paid = True
+                publish_reward = getattr(settings, "COURSE_PUBLISH_REWARD", 20)
+                from credits.models import CreditLedger
+                from credits.services import add_entry
+                add_entry(
+                    course.instructor,
+                    publish_reward,
+                    CreditLedger.Reason.COURSE_PUBLISH,
+                    f"Course published: {course.title}",
+                    notify=True,
+                )
+                reward_nuts = publish_reward
+            course.save(update_fields=["status", "reward_paid", "updated_at"])
+            if reward_nuts > 0:
+                messages.success(
+                    request,
+                    _("Congratulations! Your course is now published and available in the catalog. You earned %(nuts)d nuts!")
+                    % {"nuts": reward_nuts},
+                )
+            else:
+                messages.success(request, _("Congratulations! Your course is now published and available in the catalog."))
         except ValidationError as e:
             messages.error(request, e.message if hasattr(e, "message") else str(e))
     else:
@@ -599,15 +620,25 @@ def lesson_stream(request, pk):
 @login_required
 @require_POST
 def course_delete(request, pk):
-    """Delete a course and all associated lessons and media."""
+    """Delete a course and all associated lessons and media, deducting its respected nuts."""
     _check_courses_enabled()
     course = get_object_or_404(Course, pk=pk)
     if course.instructor_id != request.user.id and not request.user.is_superuser:
         raise PermissionDenied(_("Only the instructor or an administrator can delete this course."))
 
     title = course.title
+    from .services import deduct_course_credits_on_delete
+    deducted_nuts = deduct_course_credits_on_delete(course)
     course.delete()
-    messages.success(request, _('Course "%(title)s" has been successfully deleted.') % {"title": title})
+
+    if deducted_nuts > 0:
+        messages.success(
+            request,
+            _('Course "%(title)s" has been deleted. %(nuts)d nuts have been deducted from your account.')
+            % {"title": title, "nuts": deducted_nuts},
+        )
+    else:
+        messages.success(request, _('Course "%(title)s" has been successfully deleted.') % {"title": title})
 
     next_url = request.POST.get("next") or request.GET.get("next")
     if next_url and next_url.startswith("/"):

@@ -14,6 +14,7 @@ class CreditLedger(models.Model):
         SWAP_HOLD = "swap_hold", _("Skill swap deposit held")
         SWAP_RETURN = "swap_return", _("Skill swap deposit returned")
         SWAP_FORFEIT = "swap_forfeit", _("Skill swap deposit forfeited")
+        COURSE_PUBLISH = "course_publish", _("Course publish reward")
         ADMIN = "admin", _("Admin adjustment")
         REVERSAL = "reversal", _("Reversal")
 

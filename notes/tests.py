@@ -517,3 +517,33 @@ class ImprovementsFeaturesTests(TestCase):
         self.assertEqual(rating.rating, 4)
         self.assertEqual(rating.review, "Revised: chapter 4 had a minor formula typo.")
 
+    def test_note_delete_deducts_earned_nuts(self):
+        # Create a pending note
+        pending_note = make_note(
+            owner=self.owner,
+            batch=self.batch,
+            department=self.dept,
+            status=Note.Status.PENDING,
+            title="Physics Notes",
+        )
+        self.assertFalse(pending_note.reward_paid)
+
+        # Approve note so owner earns 10 nuts
+        from credits.services import get_balance
+        approve_note(pending_note, reviewer=self.teacher)
+        pending_note.refresh_from_db()
+        self.assertTrue(pending_note.reward_paid)
+        bal_before = get_balance(self.owner)
+
+        # Owner deletes the note
+        self.client.force_login(self.owner)
+        res = self.client.post(reverse("notes:delete", args=[pending_note.pk]))
+        self.assertRedirects(res, reverse("notes:list"))
+
+        # Balance must be minused by 10 nuts
+        bal_after = get_balance(self.owner)
+        self.assertEqual(bal_after, bal_before - 10)
+        pending_note.refresh_from_db()
+        self.assertFalse(pending_note.reward_paid)
+        self.assertEqual(pending_note.status, Note.Status.REMOVED)
+

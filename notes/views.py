@@ -637,9 +637,15 @@ def note_delete(request, pk):
         raise PermissionDenied("You do not have permission to delete this note.")
 
     title = note.title
+    from .services import deduct_note_credits_on_delete
+    deducted_nuts = deduct_note_credits_on_delete(note)
     note.status = Note.Status.REMOVED
-    note.save(update_fields=["status"])
-    messages.success(request, f'Note "{title}" has been deleted.')
+    note.save(update_fields=["status", "reward_paid"])
+
+    if deducted_nuts > 0:
+        messages.success(request, f'Note "{title}" has been deleted. {deducted_nuts} nuts have been deducted from your account.')
+    else:
+        messages.success(request, f'Note "{title}" has been deleted.')
 
     next_url = request.POST.get("next") or request.GET.get("next")
     if next_url and next_url.startswith("/"):

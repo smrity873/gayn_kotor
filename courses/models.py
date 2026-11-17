@@ -63,6 +63,7 @@ class Course(models.Model):
         choices=Status.choices,
         default=Status.DRAFT,
     )
+    reward_paid = models.BooleanField(default=False)
     total_duration_seconds = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -74,6 +75,12 @@ class Course(models.Model):
         return self.title
 
     def delete(self, *args, **kwargs):
+        if self.reward_paid:
+            try:
+                from .services import deduct_course_credits_on_delete
+                deduct_course_credits_on_delete(self)
+            except Exception:
+                pass
         if self.thumbnail:
             try:
                 self.thumbnail.delete(save=False)

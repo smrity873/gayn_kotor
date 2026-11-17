@@ -420,3 +420,29 @@ class CourseDeleteTests(TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertTrue(Course.objects.filter(id=self.course.id).exists())
 
+    def test_deleting_published_course_deducts_publish_nuts(self):
+        from credits.services import get_balance, add_entry
+        from credits.models import CreditLedger
+
+        # Course is published and rewarded 20 nuts
+        self.course.reward_paid = True
+        self.course.status = Course.Status.PUBLISHED
+        self.course.save()
+        add_entry(
+            self.instructor,
+            20,
+            CreditLedger.Reason.COURSE_PUBLISH,
+            f"Course published: {self.course.title}",
+        )
+        bal_before = get_balance(self.instructor)
+
+        # Instructor deletes the course
+        self.client.force_login(self.instructor)
+        resp = self.client.post(reverse("courses:course_delete", args=[self.course.id]))
+        self.assertRedirects(resp, reverse("courses:my_courses"))
+        self.assertFalse(Course.objects.filter(id=self.course.id).exists())
+
+        # Balance must be minused by 20 nuts
+        bal_after = get_balance(self.instructor)
+        self.assertEqual(bal_after, bal_before - 20)
+

@@ -269,3 +269,51 @@ def fulfill_course_purchase(order: PaymentOrder) -> CoursePurchase:
     )
 
     return purchase
+
+
+@transaction.atomic
+def deduct_course_credits_on_delete(course):
+    """
+    Reverses the course publish nuts reward if paid upon deletion.
+    Uses reverse_entry() if an unreversed COURSE_PUBLISH entry is found,
+    or adds a REVERSAL entry with allow_negative=True.
+    Returns the total number of nuts deducted.
+    """
+    from credits.models import CreditLedger
+    from credits.services import add_entry, reverse_entry
+    from django.db.models import Q
+
+    instructor = course.instructor
+    total_deducted = 0
+    publish_reward = getattr(settings, "COURSE_PUBLISH_REWARD", 20)
+
+    entries = list(
+        CreditLedger.objects.filter(
+            user=instructor,
+            reason=CreditLedger.Reason.COURSE_PUBLISH,
+            reversed_by__isnull=True,
+        ).filter(
+            Q(description__icontains=course.title) | Q(description__icontains=str(course.id))
+        )
+    )
+
+    if entries:
+        for entry in entries:
+            try:
+                reverse_entry(entry)
+                total_deducted += entry.amount
+            except ValueError:
+                pass
+    elif getattr(course, "reward_paid", False) or course.status == Course.Status.PUBLISHED:
+        add_entry(
+            instructor,
+            -publish_reward,
+            CreditLedger.Reason.REVERSAL,
+            f"Reward reversed: Course '{course.title}' deleted",
+            allow_negative=True,
+            notify=True,
+        )
+        total_deducted += publish_reward
+
+    course.reward_paid = False
+    return total_deducted
