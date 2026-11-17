@@ -290,11 +290,11 @@ def confirm_time(session, user):
 
 @transaction.atomic
 def set_meeting_link(session, user, link):
-    """Sets or edits the meeting link. Only the teacher can do so before completion."""
+    """Sets or edits the meeting link. Either participant can do so before completion."""
     session = SwapSession.objects.select_for_update().get(pk=session.pk)
 
-    if session.teacher_id != user.id:
-        raise PermissionDenied(_("Only the teacher can set or edit the meeting link."))
+    if user.id not in (session.teacher_id, session.learner_id) and not user.is_superuser:
+        raise PermissionDenied(_("Only session participants can set or edit the meeting link."))
 
     if session.status in (SwapSession.Status.COMPLETED, SwapSession.Status.CANCELLED, SwapSession.Status.NO_SHOW):
         raise ValidationError(_("Cannot edit meeting link for ended sessions."))
@@ -305,13 +305,15 @@ def set_meeting_link(session, user, link):
     session.meeting_link = clean_link
     session.save(update_fields=["meeting_link", "updated_at"])
 
-    # Notify learner (Never put the URL in the notification text)
+    # Notify other party (Never put the URL in the notification text)
+    other_party = session.learner if user.id == session.teacher_id else session.teacher
     notify(
-        session.learner,
-        f'Meeting link added for your session "{session.skill_name}".',
+        other_party,
+        f'Meeting link added/updated for your session "{session.skill_name}".',
         reverse("swaps:session_detail", args=[session.id]),
     )
     return session
+
 
 
 @transaction.atomic

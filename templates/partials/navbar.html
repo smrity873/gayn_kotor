@@ -1,10 +1,10 @@
+{% load static %}
 <header class="sticky top-0 z-50 border-b border-green-100 bg-white shadow-sm dark:border-green-900 dark:bg-green-950">
   <nav class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
 
     <!-- Logo -->
-    <a href="{% url 'core:home' %}" class="flex shrink-0 items-center gap-2">
-      <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 text-xl shadow-md shadow-green-600/30">🐿️</span>
-      <span class="hidden text-xl font-bold text-green-800 dark:text-green-300 sm:inline">{{ SITE_NAME }}</span>
+    <a href="{% url 'core:home' %}" class="flex shrink-0 items-center gap-2 group py-1">
+      <img src="{% static 'images/logo-banner.webp' %}" alt="{{ SITE_NAME }}" class="h-9 sm:h-10 w-auto object-contain transition duration-200 group-hover:scale-105">
     </a>
 
     <!-- Search bar (large screens only) -->
@@ -59,8 +59,10 @@
       {% endif %}
 
       <!-- Profile button (opens popup) -->
-      <button id="profile-btn" onclick="toggleProfile()" aria-label="Profile" class="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-base font-bold uppercase text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">
-        {% if user.is_authenticated %}
+      <button id="profile-btn" onclick="toggleProfile()" aria-label="Profile" class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-green-600 text-base font-bold uppercase text-white shadow-md shadow-green-600/30 transition hover:bg-green-700">
+        {% if user.is_authenticated and user.avatar_url %}
+        <img src="{{ user.avatar_url }}" alt="{{ user.username }}" class="h-full w-full object-cover">
+        {% elif user.is_authenticated %}
         {{ user.first_name|default:user.username|first }}
         {% else %}
         <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z" /></svg>

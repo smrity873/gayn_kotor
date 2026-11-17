@@ -291,3 +291,33 @@ class Phase1AccountsTests(TestCase):
         self.assertContains(resp, student.id_number)
         self.assertContains(resp, self.batch_a.name)
         self.assertContains(resp, self.dept.code)
+
+    def test_profile_picture_upload_and_delete(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        student = make_student(batch=self.batch_a)
+        self.client.force_login(student)
+
+        file = io.BytesIO()
+        image = Image.new("RGB", size=(100, 100), color=(0, 128, 0))
+        image.save(file, "JPEG")
+        file.seek(0)
+        uploaded = SimpleUploadedFile("avatar.jpg", file.read(), content_type="image/jpeg")
+
+        # 1. Upload profile picture
+        resp = self.client.post(reverse("accounts:profile_picture_upload"), {"profile_picture": uploaded})
+        self.assertRedirects(resp, reverse("accounts:profile"))
+        student.refresh_from_db()
+        self.assertTrue(bool(student.profile_picture))
+        self.assertTrue(student.avatar_url)
+
+        # 2. Delete profile picture
+        resp_del = self.client.post(reverse("accounts:profile_picture_delete"))
+        self.assertRedirects(resp_del, reverse("accounts:profile"))
+        student.refresh_from_db()
+        self.assertFalse(bool(student.profile_picture))
+        self.assertEqual(student.profile_picture_url, "")
+        self.assertEqual(student.avatar_url, "")
+

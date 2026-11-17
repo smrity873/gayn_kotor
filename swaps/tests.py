@@ -93,9 +93,10 @@ class SwapPermissionAndAccessTests(TestCase):
         )
         self.assertEqual(res.status_code, 403)
 
-    def test_non_teacher_cannot_set_meeting_link(self):
+    def test_non_participant_cannot_set_meeting_link(self):
+        outsider = make_student(username="outsider", email="out@example.com")
         with self.assertRaises(PermissionDenied):
-            set_meeting_link(self.session, self.learner, "https://meet.google.com/abc-defg-hij")
+            set_meeting_link(self.session, outsider, "https://meet.google.com/abc-defg-hij")
 
     def test_unverified_user_cannot_create_post(self):
         unverified = make_student(

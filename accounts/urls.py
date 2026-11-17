@@ -26,6 +26,8 @@ urlpatterns = [
     path("verify/<str:token>/", views.verify_email, name="verify"),
     path("resend-verification/", views.resend_verification, name="resend_verification"),
     path("profile/", views.profile, name="profile"),
+    path("profile/picture/upload/", views.profile_picture_upload, name="profile_picture_upload"),
+    path("profile/picture/delete/", views.profile_picture_delete, name="profile_picture_delete"),
     # Password change
     path(
         "password-change/",

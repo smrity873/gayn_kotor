@@ -393,3 +393,118 @@ class RemovedNoteAccessTests(TestCase):
         # Reader now gets 404 when accessing the note file
         response_after = self.client.get(reverse("notes:file", args=[self.note.pk]))
         self.assertEqual(response_after.status_code, 404)
+
+
+class ImprovementsFeaturesTests(TestCase):
+    def setUp(self):
+        self.dept = make_department(name="Computer Science", code="CSE")
+        self.teacher = make_lecturer(username="teacher_improv")
+        self.batch = make_batch(department=self.dept, class_teacher=self.teacher)
+        self.owner = make_student(batch=self.batch, username="owner_student")
+        self.other_student = make_student(batch=self.batch, username="other_student")
+        give_credits(self.other_student, 20)
+        self.note = make_note(
+            owner=self.owner,
+            batch=self.batch,
+            department=self.dept,
+            status=Note.Status.APPROVED,
+            semester=8,
+            title="Database Systems",
+        )
+        self.client = Client()
+
+    def test_semester_validation_allows_8_rejects_9(self):
+        from django.core.exceptions import ValidationError
+        self.note.semester = 8
+        self.note.full_clean()  # should not raise
+
+        self.note.semester = 9
+        with self.assertRaises(ValidationError):
+            self.note.full_clean()
+
+    def test_role_based_edit_permissions(self):
+        # 1. Owner can edit note
+        self.client.force_login(self.owner)
+        resp = self.client.post(
+            reverse("notes:edit", args=[self.note.pk]),
+            {
+                "title": "Advanced Database Systems",
+                "course_code": "CSE-401",
+                "department": self.dept.pk,
+                "semester": 8,
+                "visibility": Note.Visibility.PUBLIC,
+                "description": "Updated note",
+            },
+        )
+        self.assertRedirects(resp, reverse("notes:detail", args=[self.note.pk]))
+        self.note.refresh_from_db()
+        self.assertEqual(self.note.title, "Advanced Database Systems")
+
+        # 2. Non-owner student cannot edit note (PermissionDenied / 403)
+        self.client.force_login(self.other_student)
+        resp_other = self.client.post(
+            reverse("notes:edit", args=[self.note.pk]),
+            {
+                "title": "Hacked Title",
+                "course_code": "CSE-401",
+                "department": self.dept.pk,
+                "semester": 8,
+                "visibility": Note.Visibility.PUBLIC,
+            },
+        )
+        self.assertEqual(resp_other.status_code, 403)
+
+        # 3. Teacher cannot edit student note unless owner (PermissionDenied / 403)
+        self.client.force_login(self.teacher)
+        resp_teacher = self.client.post(
+            reverse("notes:edit", args=[self.note.pk]),
+            {
+                "title": "Teacher Edit",
+                "course_code": "CSE-401",
+                "department": self.dept.pk,
+                "semester": 8,
+                "visibility": Note.Visibility.PUBLIC,
+            },
+        )
+        self.assertEqual(resp_teacher.status_code, 403)
+
+    def test_role_based_delete_permissions(self):
+        # 1. Student (even owner) cannot delete note via teacher delete view
+        self.client.force_login(self.owner)
+        resp_student = self.client.post(reverse("notes:delete", args=[self.note.pk]))
+        self.assertEqual(resp_student.status_code, 403)
+        self.note.refresh_from_db()
+        self.assertNotEqual(self.note.status, Note.Status.REMOVED)
+
+        # 2. Teacher CAN delete note
+        self.client.force_login(self.teacher)
+        resp_teacher = self.client.post(reverse("notes:delete", args=[self.note.pk]))
+        self.assertRedirects(resp_teacher, reverse("notes:list"))
+        self.note.refresh_from_db()
+        self.assertEqual(self.note.status, Note.Status.REMOVED)
+
+    def test_interactive_rating_and_review_with_update(self):
+        # Reader downloads note
+        self.client.force_login(self.other_student)
+        self.client.post(reverse("notes:download", args=[self.note.pk]))
+
+        # Submit first rating & review
+        resp_rate = self.client.post(
+            reverse("notes:rate", args=[self.note.pk]),
+            {"rating": 5, "review": "Incredible handwritten notes!"},
+        )
+        self.assertRedirects(resp_rate, reverse("notes:detail", args=[self.note.pk]))
+        rating = NoteRating.objects.get(user=self.other_student, note=self.note)
+        self.assertEqual(rating.rating, 5)
+        self.assertEqual(rating.review, "Incredible handwritten notes!")
+
+        # Update rating & review
+        resp_update = self.client.post(
+            reverse("notes:rate", args=[self.note.pk]),
+            {"rating": 4, "review": "Revised: chapter 4 had a minor formula typo."},
+        )
+        self.assertRedirects(resp_update, reverse("notes:detail", args=[self.note.pk]))
+        rating.refresh_from_db()
+        self.assertEqual(rating.rating, 4)
+        self.assertEqual(rating.review, "Revised: chapter 4 had a minor formula typo.")
+

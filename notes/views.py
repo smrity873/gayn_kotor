@@ -18,7 +18,7 @@ from campus.models import Department
 from credits.models import CreditLedger
 from credits.services import add_entry, get_balance
 
-from .forms import NoteForm
+from .forms import NoteEditForm, NoteForm
 from notifications.services import notify
 from .models import Note, NoteDownload, NoteRating, NoteAppeal, NoteReport
 from .services import (
@@ -80,7 +80,7 @@ def note_list(request):
         "department": department,
         "semester": semester,
         "departments": Department.objects.all(),
-        "semesters": range(1, 13),
+        "semesters": range(1, 9),
         "querystring": params.urlencode(),
         "can_upload": allowed,
         "upload_hint": hint,
@@ -88,7 +88,6 @@ def note_list(request):
     return render(request, "notes/list.html", context)
 
 
-@login_required
 def note_preview(request, pk):
     note = get_object_or_404(Note, pk=pk)
     if not can_view_note(request.user, note):
@@ -99,9 +98,12 @@ def note_preview(request, pk):
     if not note.preview:
         raise Http404
 
-    response = FileResponse(note.preview.open("rb"), content_type="image/jpeg")
-    response["Cache-Control"] = "private, max-age=86400"
-    return response
+    try:
+        response = FileResponse(note.preview.open("rb"), content_type="image/jpeg")
+        response["Cache-Control"] = "public, max-age=86400"
+        return response
+    except Exception:
+        raise Http404
 
 
 @login_required
@@ -330,8 +332,13 @@ def note_rate(request, pk):
         if not NoteDownload.objects.filter(user=user, note=note).exists():
             messages.error(request, "You must unlock the note before rating it.")
             return back
-        if NoteRating.objects.filter(user=user, note=note).exists():
-            messages.error(request, "You have already rated this note.")
+
+        existing_rating = NoteRating.objects.filter(user=user, note=note).first()
+        if existing_rating:
+            existing_rating.rating = value
+            existing_rating.review = review_text
+            existing_rating.save(update_fields=["rating", "review"])
+            messages.success(request, "Your review and rating have been updated!")
             return back
 
         max_raters = getattr(settings, "NOTE_MAX_REWARDED_RATERS", 10)
@@ -592,3 +599,43 @@ def remove_note_view(request, pk):
     remove_note(note, by=request.user, reason=reason, reverse_reward=reverse_reward)
     messages.success(request, f'Note "{note.title}" removed.')
     return redirect("notes:list")
+
+
+@login_required
+def note_edit(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    # Per Improvements.md: Restrict editing access so only the original creator/owner of the note can edit it.
+    if note.owner_id != request.user.id and not request.user.is_superuser:
+        raise PermissionDenied("Only the original creator of this note can edit it.")
+    if note.status == Note.Status.REMOVED:
+        messages.error(request, "Removed notes cannot be edited.")
+        return redirect("notes:list")
+    if note.status == Note.Status.REJECTED:
+        raise PermissionDenied("Rejected notes cannot be edited or resubmitted.")
+
+    if request.method == "POST":
+        form = NoteEditForm(request.POST, instance=note, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Note "{note.title}" updated successfully.')
+            return redirect("notes:detail", pk=note.pk)
+    else:
+        form = NoteEditForm(instance=note, user=request.user)
+
+    return render(request, "notes/note_edit.html", {"form": form, "note": note})
+
+
+@login_required
+@require_POST
+def note_delete(request, pk):
+    note = get_object_or_404(Note, pk=pk)
+    # Per Improvements.md: Restrict deletion access so only teachers can delete notes.
+    if request.user.role != User.Role.LECTURER and not request.user.is_superuser:
+        raise PermissionDenied("Only teachers can delete notes.")
+
+    title = note.title
+    note.status = Note.Status.REMOVED
+    note.save(update_fields=["status"])
+    messages.success(request, f'Note "{title}" has been deleted.')
+    return redirect("notes:list")
+
