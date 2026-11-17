@@ -70,6 +70,23 @@
                 </button>
             </div>
         </form>
+
+        {% if post %}
+        <div class="mt-8 border-t border-red-100 pt-6 dark:border-red-900/40">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-bold text-red-700 dark:text-red-400">Delete this post</h3>
+                    <p class="text-xs text-red-600/70 dark:text-red-300/70">Remove this skill swap listing from the community board.</p>
+                </div>
+                <form method="post" action="{% url 'swaps:post_delete' post.id %}" onsubmit="return confirm('Are you sure you want to permanently delete this skill post?');">
+                    {% csrf_token %}
+                    <button type="submit" class="rounded-full border border-red-300 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition hover:bg-red-600 hover:text-white dark:border-red-800 dark:bg-red-950/40 dark:text-red-400">
+                        Delete Post
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </section>
 {% endblock %}

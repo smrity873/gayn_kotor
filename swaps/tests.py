@@ -312,3 +312,60 @@ class SwapDepositStateMachineTests(TestCase):
 
         with self.assertRaises(InsufficientCreditsError):
             confirm_time(session, poor_learner)
+
+
+class SkillPostEditDeleteTests(TestCase):
+    def setUp(self):
+        self.author = make_student(username="post_author", email="author@test.com")
+        self.other_user = make_student(username="other_person", email="other@test.com")
+        self.client = Client()
+        self.post = create_skill_post(
+            user=self.author,
+            kind=SkillPost.Kind.OFFER,
+            skill_name="Django Web Development",
+            description="I can teach Django from scratch.",
+        )
+
+    def test_author_can_edit_post(self):
+        self.client.force_login(self.author)
+        res = self.client.post(
+            reverse("swaps:post_edit", args=[self.post.id]),
+            {
+                "kind": SkillPost.Kind.OFFER,
+                "skill_name": "Django & React Web Development",
+                "description": "Updated description with React.",
+                "is_active": True,
+            },
+        )
+        self.assertRedirects(res, f"{reverse('swaps:list')}?tab=my_posts")
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.skill_name, "Django & React Web Development")
+        self.assertEqual(self.post.description, "Updated description with React.")
+
+    def test_other_user_cannot_edit_post(self):
+        self.client.force_login(self.other_user)
+        res = self.client.post(
+            reverse("swaps:post_edit", args=[self.post.id]),
+            {
+                "kind": SkillPost.Kind.OFFER,
+                "skill_name": "Hacked Skill",
+                "description": "Should fail.",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(res.status_code, 403)
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.skill_name, "Django Web Development")
+
+    def test_author_can_delete_post(self):
+        self.client.force_login(self.author)
+        res = self.client.post(reverse("swaps:post_delete", args=[self.post.id]))
+        self.assertRedirects(res, f"{reverse('swaps:list')}?tab=my_posts")
+        self.assertFalse(SkillPost.objects.filter(id=self.post.id).exists())
+
+    def test_other_user_cannot_delete_post(self):
+        self.client.force_login(self.other_user)
+        res = self.client.post(reverse("swaps:post_delete", args=[self.post.id]))
+        self.assertEqual(res.status_code, 403)
+        self.assertTrue(SkillPost.objects.filter(id=self.post.id).exists())
+

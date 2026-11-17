@@ -156,15 +156,37 @@ def build_class_teacher_context(user):
         batch__in=batches, status=BatchMembership.Status.APPROVED
     ).count()
 
-    # CR list
+    # CR list & batch data
     cr_list = list(
         BatchMembership.objects.filter(
             batch__in=batches, is_cr=True, status=BatchMembership.Status.APPROVED
         ).select_related("user", "batch")
     )
+    batch_cr_data = []
+    for b in batches:
+        curr_cr = (
+            BatchMembership.objects.filter(
+                batch=b, is_cr=True, status=BatchMembership.Status.APPROVED
+            )
+            .select_related("user")
+            .first()
+        )
+        approved_members = list(
+            BatchMembership.objects.filter(
+                batch=b, status=BatchMembership.Status.APPROVED, user__is_active=True
+            )
+            .select_related("user")
+            .order_by("user__first_name", "user__last_name", "user__username")
+        )
+        batch_cr_data.append({
+            "batch": b,
+            "current_cr": curr_cr,
+            "members": approved_members,
+        })
 
     return {
         "batches": batches,
+        "batch_cr_data": batch_cr_data,
         "escalated_notes": escalated_notes,
         "escalated_count": len(escalated_notes),
         "flagged_notes": flagged_notes,

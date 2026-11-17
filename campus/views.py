@@ -33,6 +33,8 @@ def manage(request):
     items = []
     for batch in batches:
         memberships = batch.memberships.select_related("user").order_by("user__first_name")
+        approved_members = list(memberships.filter(status=BatchMembership.Status.APPROVED))
+        current_cr = next((m for m in approved_members if m.is_cr), None)
         items.append({
             "batch": batch,
             "is_teacher": (user.is_superuser or batch.class_teacher_id == user.pk),
@@ -41,10 +43,79 @@ def manage(request):
                 and user.membership.batch_id == batch.pk
                 and user.membership.is_cr
             ),
+            "current_cr": current_cr,
             "pending": memberships.filter(status=BatchMembership.Status.PENDING),
-            "members": memberships.filter(status=BatchMembership.Status.APPROVED),
+            "members": approved_members,
         })
     return render(request, "campus/manage.html", {"items": items})
+
+
+@login_required
+@require_POST
+def change_batch_cr(request, batch_id):
+    """Allows the class teacher or admin to change or unassign the Class Representative for a batch."""
+    batch = get_object_or_404(Batch.objects.select_related("department"), pk=batch_id)
+    user = request.user
+    if not (user.is_superuser or batch.class_teacher_id == user.pk):
+        raise PermissionDenied("Only the class teacher or an administrator can change the CR.")
+
+    membership_id = request.POST.get("membership_id", "").strip()
+
+    if not membership_id or membership_id == "none":
+        previous_crs = list(
+            BatchMembership.objects.filter(batch=batch, is_cr=True).select_related("user")
+        )
+        for prev in previous_crs:
+            prev.is_cr = False
+            prev.save(update_fields=["is_cr"])
+            notify(
+                prev.user,
+                f"You are no longer the CR of {batch}.",
+                reverse("core:home"),
+            )
+        messages.info(request, f"Class Representative for {batch} has been cleared.")
+    else:
+        target_membership = get_object_or_404(
+            BatchMembership.objects.select_related("user"),
+            pk=membership_id,
+            batch=batch,
+            status=BatchMembership.Status.APPROVED,
+        )
+        if not target_membership.user.is_active:
+            messages.error(request, "Cannot appoint a suspended student as CR.")
+            return redirect(request.POST.get("next") or "campus:manage")
+
+        target_name = target_membership.user.get_full_name() or target_membership.user.username
+
+        # Demote existing CR(s) for this batch
+        previous_crs = list(
+            BatchMembership.objects.filter(batch=batch, is_cr=True)
+            .exclude(pk=target_membership.pk)
+            .select_related("user")
+        )
+        for prev in previous_crs:
+            prev.is_cr = False
+            prev.save(update_fields=["is_cr"])
+            notify(
+                prev.user,
+                f"You are no longer the CR of {batch}. {target_name} is the new CR.",
+                reverse("core:home"),
+            )
+
+        target_membership.is_cr = True
+        target_membership.save(update_fields=["is_cr"])
+
+        messages.success(request, f"Class Representative of {batch} is now {target_name}.")
+        notify(
+            target_membership.user,
+            f"You are now the CR of {batch}. You can review notes of your batch.",
+            reverse("notes:review_list"),
+        )
+
+    next_url = request.POST.get("next")
+    if next_url:
+        return redirect(next_url)
+    return redirect("campus:manage")
 
 
 @login_required
@@ -92,12 +163,26 @@ def membership_action(request, pk):
                 reverse("core:home"),
             )
         elif action == "make_cr" and membership.status == BatchMembership.Status.APPROVED:
+            previous_crs = list(
+                BatchMembership.objects.filter(batch=batch, is_cr=True)
+                .exclude(pk=membership.pk)
+                .select_related("user")
+            )
+            for prev in previous_crs:
+                prev.is_cr = False
+                prev.save(update_fields=["is_cr"])
+                notify(
+                    prev.user,
+                    f"You are no longer the CR of {batch}. {name} has been appointed as the new CR.",
+                    reverse("core:home"),
+                )
+
             membership.is_cr = True
-            membership.save()
-            messages.success(request, f"{name} is now a CR.")
+            membership.save(update_fields=["is_cr"])
+            messages.success(request, f"{name} is now the CR of {batch}.")
             notify(
                 target_user,
-                f"You are now a CR of {batch}. You can review notes of your batch.",
+                f"You are now the CR of {batch}. You can review notes of your batch.",
                 reverse("notes:review_list"),
             )
         elif action == "remove_cr":

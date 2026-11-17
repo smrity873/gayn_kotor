@@ -40,8 +40,6 @@ class SkillPost(models.Model):
         return f"{self.user.username}: {self.get_kind_display()} - {self.skill_name}"
 
     def delete(self, *args, **kwargs):
-        if self.is_active:
-            raise PermissionDenied("Published skill swap posts cannot be deleted.")
         return super().delete(*args, **kwargs)
 
 
