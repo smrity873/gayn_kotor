@@ -60,22 +60,44 @@ class User(AbstractUser):
 
     @property
     def avatar_url(self):
-        if self.profile_picture:
-            try:
-                return self.profile_picture.url
-            except Exception:
-                pass
+        # 1. Prefer the stored database link
         if self.profile_picture_url:
             url = self.profile_picture_url
-            if "neon.tech" in url and "X-Amz-" not in url:
+            from core.storage import is_s3_url_expired
+            # Refresh if expired and profile_picture is available
+            if is_s3_url_expired(url) and self.profile_picture:
                 try:
-                    from django.core.files.storage import default_storage
-                    if "/media/" in url:
-                        key = url.split("/media/", 1)[1]
-                        return default_storage.url(key)
+                    fresh_url = self.profile_picture.url
+                    if fresh_url and fresh_url != url:
+                        self.profile_picture_url = fresh_url
+                        if self.pk:
+                            User.objects.filter(pk=self.pk).update(profile_picture_url=fresh_url)
+                        return fresh_url
+                except Exception:
+                    pass
+            # Refresh if it was saved with a local /media/ path or unsigned neon URL
+            if ("/media/" in url or ("neon.tech" in url and "X-Amz-" not in url)) and self.profile_picture:
+                try:
+                    fresh_url = self.profile_picture.url
+                    if fresh_url and fresh_url.startswith("http"):
+                        self.profile_picture_url = fresh_url
+                        if self.pk:
+                            User.objects.filter(pk=self.pk).update(profile_picture_url=fresh_url)
+                        return fresh_url
                 except Exception:
                     pass
             return url
+
+        if self.profile_picture:
+            try:
+                url = self.profile_picture.url
+                if url:
+                    if url.startswith("http") and self.pk:
+                        self.profile_picture_url = url
+                        User.objects.filter(pk=self.pk).update(profile_picture_url=url)
+                    return url
+            except Exception:
+                pass
         return ""
 
     REQUIRED_FIELDS = []
@@ -83,7 +105,9 @@ class User(AbstractUser):
     def save(self, *args, **kwargs):
         if self.profile_picture:
             try:
-                self.profile_picture_url = self.profile_picture.url
+                url = self.profile_picture.url
+                if url and (url.startswith("http://") or url.startswith("https://")):
+                    self.profile_picture_url = url
             except Exception:
                 pass
         elif not self.profile_picture and self.profile_picture_url:
