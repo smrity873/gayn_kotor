@@ -20,8 +20,13 @@
                 <div class="absolute inset-0 flex items-center justify-center text-green-600/40 dark:text-green-300/30">
                     <svg class="h-10 w-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5M9 13h6M9 17h6"/></svg>
                 </div>
+                {% if note.get_preview_url %}
+                <img src="{{ note.get_preview_url }}" alt="" loading="lazy" onerror="this.style.display='none'"
+                     class="absolute inset-0 h-full w-full object-cover object-top">
+                {% elif note.preview %}
                 <img src="{% url 'notes:preview' note.pk %}" alt="" loading="lazy" onerror="this.style.display='none'"
                      class="absolute inset-0 h-full w-full object-cover object-top">
+                {% endif %}
             </div>
 
             <div class="min-w-0 flex-1">

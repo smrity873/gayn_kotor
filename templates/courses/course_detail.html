@@ -20,7 +20,9 @@
         <!-- Main Info -->
         <div class="lg:col-span-2 space-y-6">
             <div class="relative overflow-hidden rounded-3xl bg-gray-900 shadow-md">
-                {% if course.thumbnail %}
+                {% if course.get_thumbnail_url %}
+                <img src="{{ course.get_thumbnail_url }}" alt="{{ course.title }}" class="h-72 w-full object-cover opacity-90">
+                {% elif course.thumbnail %}
                 <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" class="h-72 w-full object-cover opacity-90">
                 {% else %}
                 <div class="flex h-72 w-full items-center justify-center bg-gray-800 text-gray-500">

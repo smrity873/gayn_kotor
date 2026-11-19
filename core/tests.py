@@ -853,14 +853,19 @@ class ContentImmutabilityPolicyTests(TestCase):
         resp = self.client.post(reverse("notes:remove", args=[note.pk]), {"reason": "Test remove"})
         self.assertEqual(resp.status_code, 403)
 
-    def test_rejected_note_cannot_be_appealed_or_resubmitted(self):
+    def test_rejected_note_cannot_be_updated_or_resubmitted(self):
         from notes.models import Note
 
         note = make_note(owner=self.student, batch=self.batch, title="Rejected Note", status=Note.Status.REJECTED)
 
-        # Student cannot appeal/resubmit
+        # Student cannot update/resubmit
         self.client.force_login(self.student)
-        resp = self.client.post(reverse("notes:appeal", args=[note.pk]), {"message": "Please overturn"})
+        resp = self.client.post(reverse("notes:edit", args=[note.pk]), {
+            "title": "Hacked Title",
+            "course_code": note.course_code,
+            "department": note.department_id,
+            "semester": note.semester,
+        })
         self.assertEqual(resp.status_code, 403)
 
     def test_published_course_cannot_be_updated_unpublished_or_deleted(self):
@@ -883,15 +888,7 @@ class ContentImmutabilityPolicyTests(TestCase):
             duration_seconds=3600,
         )
 
-        # 1. Course delete blocked
-        with self.assertRaises(PermissionDenied):
-            course.delete()
-
-        # 2. Lesson delete blocked
-        with self.assertRaises(PermissionDenied):
-            lesson.delete()
-
-        # 3. Course edit view blocked
+        # 1. Course edit view blocked
         self.client.force_login(self.teacher)
         resp = self.client.post(reverse("courses:course_edit", args=[course.id]), {
             "title": "Hacked Title",
@@ -903,13 +900,13 @@ class ContentImmutabilityPolicyTests(TestCase):
         course.refresh_from_db()
         self.assertEqual(course.title, "Published Python Course")
 
-        # 4. Course unpublish toggle blocked
+        # 2. Course unpublish toggle blocked
         resp_toggle = self.client.post(reverse("courses:course_publish_toggle", args=[course.id]))
         self.assertRedirects(resp_toggle, reverse("courses:course_detail", args=[course.id]))
         course.refresh_from_db()
         self.assertEqual(course.status, Course.Status.PUBLISHED)
 
-        # 5. Adding lesson to published course blocked
+        # 3. Adding lesson to published course blocked
         resp_add = self.client.post(reverse("courses:lesson_create", args=[course.id]), {
             "title": "New Lesson",
             "order": 2,
@@ -918,9 +915,14 @@ class ContentImmutabilityPolicyTests(TestCase):
         })
         self.assertEqual(resp_add.status_code, 403)
 
-        # 6. Deleting lesson view blocked
+        # 4. Deleting lesson view blocked
         resp_del_lesson = self.client.post(reverse("courses:lesson_delete", args=[lesson.id]))
         self.assertEqual(resp_del_lesson.status_code, 403)
+
+        # 5. Course deletion is supported per User Request 6 & 8
+        course_id = course.id
+        course.delete()
+        self.assertFalse(Course.objects.filter(id=course_id).exists())
 
     def test_rejected_course_cannot_be_updated_or_resubmitted(self):
         from decimal import Decimal
@@ -949,8 +951,7 @@ class ContentImmutabilityPolicyTests(TestCase):
         resp_toggle = self.client.post(reverse("courses:course_publish_toggle", args=[course.id]))
         self.assertRedirects(resp_toggle, reverse("courses:my_courses"))
 
-    def test_published_skill_swap_cannot_be_updated_deactivated_or_deleted(self):
-        from django.core.exceptions import PermissionDenied
+    def test_skill_swap_post_can_be_edited_and_deleted(self):
         from swaps.models import SkillPost
 
         post = SkillPost.objects.create(
@@ -961,21 +962,21 @@ class ContentImmutabilityPolicyTests(TestCase):
             is_active=True,
         )
 
-        # 1. Model delete blocked
-        with self.assertRaises(PermissionDenied):
-            post.delete()
-
-        # 2. View edit blocked
+        # 1. View edit allowed per User Request 7
         self.client.force_login(self.student)
         resp_edit = self.client.post(reverse("swaps:post_edit", args=[post.id]), {
-            "skill_name": "Hacked Skill",
+            "skill_name": "Updated Python Mentoring",
             "kind": SkillPost.Kind.OFFER,
+            "description": "Updated description",
         })
-        self.assertEqual(resp_edit.status_code, 403)
+        self.assertIn(resp_edit.status_code, [200, 302])
+        post.refresh_from_db()
+        self.assertEqual(post.skill_name, "Updated Python Mentoring")
 
-        # 3. View deactivate blocked
-        resp_deact = self.client.post(reverse("swaps:post_deactivate", args=[post.id]))
-        self.assertEqual(resp_deact.status_code, 403)
+        # 2. Model delete allowed per User Request 7
+        post_id = post.id
+        post.delete()
+        self.assertFalse(SkillPost.objects.filter(id=post_id).exists())
 
     def test_rejected_swap_session_cannot_be_resubmitted(self):
         from swaps.models import SkillPost, SwapSession

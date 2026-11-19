@@ -17,4 +17,15 @@ services:
         sync: false
       - key: ALLOWED_HOSTS
         value: ".onrender.com"
+      - key: AWS_ACCESS_KEY_ID
+        value: "nak_live_ff6b3c796f8e4c239b2a1c8c1ee03c8a"
+      - key: AWS_SECRET_ACCESS_KEY
+        value: "nsk_live_aa28a1f10d886ef10daef986ac0f9388c2792981db2b4246938ccece68aec2f8"
+      - key: AWS_STORAGE_BUCKET_NAME
+        value: "uploads"
+      - key: AWS_ENDPOINT_URL_S3
+        value: "https://br-empty-wave-ao3fubx3.storage.c-2.ap-southeast-1.aws.neon.tech"
+      - key: AWS_REGION
+        value: "ap-southeast-1"
+
 

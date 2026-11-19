@@ -78,10 +78,22 @@ class Note(models.Model):
         upload_to=note_file_upload_to,
         validators=[FileExtensionValidator(["pdf"]), validate_file_size, validate_pdf_header],
     )
+    file_url = models.URLField(
+        _("file URL"),
+        max_length=1000,
+        blank=True,
+        default="",
+    )
     preview = models.ImageField(
         storage=private_storage,
         upload_to=note_preview_upload_to,
         blank=True,
+    )
+    preview_url = models.URLField(
+        _("preview URL"),
+        max_length=1000,
+        blank=True,
+        default="",
     )
     batch = models.ForeignKey(
         "campus.Batch",
@@ -125,6 +137,107 @@ class Note(models.Model):
         if self.status in (self.Status.APPROVED, self.Status.UNVERIFIED):
             raise PermissionDenied("Published notes cannot be deleted.")
         return super().delete(*args, **kwargs)
+
+    def get_file_url(self):
+        # 1. Prefer stored database file_url
+        if self.file_url:
+            url = self.file_url
+            from core.storage import is_s3_url_expired
+            if is_s3_url_expired(url) and self.file:
+                try:
+                    fresh_url = self.file.url
+                    if fresh_url and fresh_url != url:
+                        self.file_url = fresh_url
+                        if self.pk:
+                            Note.objects.filter(pk=self.pk).update(file_url=fresh_url)
+                        return fresh_url
+                except Exception:
+                    pass
+            if "/media/" in url and self.file:
+                try:
+                    fresh_url = self.file.url
+                    if fresh_url and fresh_url.startswith("http"):
+                        self.file_url = fresh_url
+                        if self.pk:
+                            Note.objects.filter(pk=self.pk).update(file_url=fresh_url)
+                        return fresh_url
+                except Exception:
+                    pass
+            return url
+
+        if self.file:
+            try:
+                url = self.file.url
+                if url:
+                    if url.startswith("http") and self.pk:
+                        self.file_url = url
+                        Note.objects.filter(pk=self.pk).update(file_url=url)
+                    return url
+            except Exception:
+                pass
+        return ""
+
+    def get_preview_url(self):
+        # 1. Prefer stored database preview_url
+        if self.preview_url:
+            url = self.preview_url
+            from core.storage import is_s3_url_expired
+            if is_s3_url_expired(url) and self.preview:
+                try:
+                    fresh_url = self.preview.url
+                    if fresh_url and fresh_url != url:
+                        self.preview_url = fresh_url
+                        if self.pk:
+                            Note.objects.filter(pk=self.pk).update(preview_url=fresh_url)
+                        return fresh_url
+                except Exception:
+                    pass
+            if "/media/" in url and self.preview:
+                try:
+                    fresh_url = self.preview.url
+                    if fresh_url and fresh_url.startswith("http"):
+                        self.preview_url = fresh_url
+                        if self.pk:
+                            Note.objects.filter(pk=self.pk).update(preview_url=fresh_url)
+                        return fresh_url
+                except Exception:
+                    pass
+            return url
+
+        if self.preview:
+            try:
+                url = self.preview.url
+                if url:
+                    if url.startswith("http") and self.pk:
+                        self.preview_url = url
+                        Note.objects.filter(pk=self.pk).update(preview_url=url)
+                    return url
+            except Exception:
+                pass
+        return ""
+
+    def save(self, *args, **kwargs):
+        if self.file:
+            try:
+                url = self.file.url
+                if url and (url.startswith("http://") or url.startswith("https://")):
+                    self.file_url = url
+            except Exception:
+                pass
+        elif not self.file and self.file_url:
+            self.file_url = ""
+
+        if self.preview:
+            try:
+                url = self.preview.url
+                if url and (url.startswith("http://") or url.startswith("https://")):
+                    self.preview_url = url
+            except Exception:
+                pass
+        elif not self.preview and self.preview_url:
+            self.preview_url = ""
+
+        super().save(*args, **kwargs)
 
     @property
     def is_overdue(self):

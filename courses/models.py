@@ -58,6 +58,12 @@ class Course(models.Model):
         blank=True,
         null=True,
     )
+    thumbnail_url = models.URLField(
+        _("thumbnail URL"),
+        max_length=1000,
+        blank=True,
+        default="",
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -91,6 +97,57 @@ class Course(models.Model):
     @property
     def is_published(self):
         return self.status == self.Status.PUBLISHED
+
+    def get_thumbnail_url(self):
+        # 1. Prefer database thumbnail_url
+        if self.thumbnail_url:
+            url = self.thumbnail_url
+            from core.storage import is_s3_url_expired
+            if is_s3_url_expired(url) and self.thumbnail:
+                try:
+                    fresh_url = self.thumbnail.url
+                    if fresh_url and fresh_url != url:
+                        self.thumbnail_url = fresh_url
+                        if self.pk:
+                            Course.objects.filter(pk=self.pk).update(thumbnail_url=fresh_url)
+                        return fresh_url
+                except Exception:
+                    pass
+            if "/media/" in url and self.thumbnail:
+                try:
+                    fresh_url = self.thumbnail.url
+                    if fresh_url and fresh_url.startswith("http"):
+                        self.thumbnail_url = fresh_url
+                        if self.pk:
+                            Course.objects.filter(pk=self.pk).update(thumbnail_url=fresh_url)
+                        return fresh_url
+                except Exception:
+                    pass
+            return url
+
+        if self.thumbnail:
+            try:
+                url = self.thumbnail.url
+                if url:
+                    if url.startswith("http") and self.pk:
+                        self.thumbnail_url = url
+                        Course.objects.filter(pk=self.pk).update(thumbnail_url=url)
+                    return url
+            except Exception:
+                pass
+        return ""
+
+    def save(self, *args, **kwargs):
+        if self.thumbnail:
+            try:
+                url = self.thumbnail.url
+                if url and (url.startswith("http://") or url.startswith("https://")):
+                    self.thumbnail_url = url
+            except Exception:
+                pass
+        elif not self.thumbnail and self.thumbnail_url:
+            self.thumbnail_url = ""
+        super().save(*args, **kwargs)
 
     @property
     def total_duration_minutes(self):
@@ -128,6 +185,12 @@ class Lesson(models.Model):
         null=True,
         validators=[FileExtensionValidator(["mp4"])],
     )
+    video_file_url = models.URLField(
+        _("video file URL"),
+        max_length=1000,
+        blank=True,
+        default="",
+    )
     video_url = models.URLField(
         max_length=500,
         blank=True,
@@ -150,6 +213,58 @@ class Lesson(models.Model):
             except Exception:
                 pass
         return super().delete(*args, **kwargs)
+
+    def get_video_url(self):
+        if self.video_url:
+            return self.video_url
+        if self.video_file_url:
+            url = self.video_file_url
+            from core.storage import is_s3_url_expired
+            if is_s3_url_expired(url) and self.video_file:
+                try:
+                    fresh_url = self.video_file.url
+                    if fresh_url and fresh_url != url:
+                        self.video_file_url = fresh_url
+                        if self.pk:
+                            Lesson.objects.filter(pk=self.pk).update(video_file_url=fresh_url)
+                        return fresh_url
+                except Exception:
+                    pass
+            if "/media/" in url and self.video_file:
+                try:
+                    fresh_url = self.video_file.url
+                    if fresh_url and fresh_url.startswith("http"):
+                        self.video_file_url = fresh_url
+                        if self.pk:
+                            Lesson.objects.filter(pk=self.pk).update(video_file_url=fresh_url)
+                        return fresh_url
+                except Exception:
+                    pass
+            return url
+
+        if self.video_file:
+            try:
+                url = self.video_file.url
+                if url:
+                    if url.startswith("http") and self.pk:
+                        self.video_file_url = url
+                        Lesson.objects.filter(pk=self.pk).update(video_file_url=url)
+                    return url
+            except Exception:
+                pass
+        return ""
+
+    def save(self, *args, **kwargs):
+        if self.video_file:
+            try:
+                url = self.video_file.url
+                if url and (url.startswith("http://") or url.startswith("https://")):
+                    self.video_file_url = url
+            except Exception:
+                pass
+        elif not self.video_file and self.video_file_url:
+            self.video_file_url = ""
+        super().save(*args, **kwargs)
 
     @property
     def duration_minutes(self):

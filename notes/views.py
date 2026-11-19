@@ -93,17 +93,24 @@ def note_preview(request, pk):
     if not can_view_note(request.user, note):
         raise Http404
 
+    preview_url = note.get_preview_url()
+    if preview_url and preview_url.startswith("http"):
+        return redirect(preview_url)
+
     if not note.preview:
         make_preview(note)
-    if not note.preview:
-        raise Http404
+        preview_url = note.get_preview_url()
+        if preview_url and preview_url.startswith("http"):
+            return redirect(preview_url)
 
-    try:
-        response = FileResponse(note.preview.open("rb"), content_type="image/jpeg")
-        response["Cache-Control"] = "public, max-age=86400"
-        return response
-    except Exception:
-        raise Http404
+    if note.preview:
+        try:
+            response = FileResponse(note.preview.open("rb"), content_type="image/jpeg")
+            response["Cache-Control"] = "public, max-age=86400"
+            return response
+        except Exception:
+            pass
+    raise Http404
 
 
 @login_required
@@ -207,7 +214,16 @@ def note_file(request, pk):
     if not (is_privileged or is_reviewer or has_downloaded):
         raise Http404
 
-    return FileResponse(note.file.open("rb"), content_type="application/pdf")
+    file_url = note.get_file_url()
+    if file_url and file_url.startswith("http"):
+        return redirect(file_url)
+
+    if note.file:
+        try:
+            return FileResponse(note.file.open("rb"), content_type="application/pdf")
+        except Exception:
+            pass
+    raise Http404
 
 
 def earned_today(user, reason):
@@ -378,7 +394,10 @@ def note_rate(request, pk):
 @verified_required
 def note_appeal(request, pk):
     note = get_object_or_404(Note, pk=pk)
-    raise PermissionDenied("Rejected notes cannot be updated or appealed/resubmitted.")
+    if note.owner_id != request.user.id and not request.user.is_superuser:
+        raise PermissionDenied("You can only appeal your own notes.")
+    if note.status != Note.Status.REJECTED:
+        raise PermissionDenied("Only rejected notes can be appealed.")
 
     if NoteAppeal.objects.filter(note=note, status=NoteAppeal.Status.OPEN).exists():
         messages.info(request, "An appeal is already pending review for this note.")

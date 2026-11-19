@@ -563,10 +563,16 @@ def lesson_stream(request, pk):
     if not can_stream:
         return HttpResponseForbidden(_("You do not have permission to stream this lesson."))
 
-    # If lesson points to an external video URL (e.g. YouTube unlisted)
+    # External video link (e.g. YouTube unlisted)
+    if lesson.video_url:
+        return redirect(lesson.video_url)
+
+    # S3 stored video link: redirect to presigned URL directly
+    video_url = lesson.get_video_url()
+    if video_url and video_url.startswith("http"):
+        return redirect(video_url)
+
     if not lesson.video_file:
-        if lesson.video_url:
-            return redirect(lesson.video_url)
         return HttpResponseNotFound(_("No video media found for this lesson."))
 
     # Optional X-Accel-Redirect mode

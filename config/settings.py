@@ -208,10 +208,13 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # AWS / Neon S3 Object Storage Configuration
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "nak_live_ff6b3c796f8e4c239b2a1c8c1ee03c8a")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "nsk_live_aa28a1f10d886ef10daef986ac0f9388c2792981db2b4246938ccece68aec2f8")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "uploads")
-AWS_S3_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL_S3") or os.getenv("AWS_S3_ENDPOINT_URL", "")
+AWS_S3_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL_S3") or os.getenv(
+    "AWS_S3_ENDPOINT_URL",
+    "https://br-empty-wave-ao3fubx3.storage.c-2.ap-southeast-1.aws.neon.tech"
+)
 AWS_S3_REGION_NAME = os.getenv("AWS_REGION") or os.getenv("AWS_S3_REGION_NAME", "ap-southeast-1")
 AWS_S3_SIGNATURE_VERSION = "s3v4"
 AWS_S3_FILE_OVERWRITE = False

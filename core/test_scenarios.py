@@ -375,6 +375,7 @@ class SkillSwapDepositStateMachineScenarioTest(TestCase):
 
 
 @override_settings(SANDBOX_ALLOWED=True)
+@override_settings(PAYMENT_GATEWAY="sandbox")
 class CreditPurchaseViaSandboxScenarioTest(TestCase):
     """Scenario 5: Credit purchase via sandbox payment gateway."""
 
